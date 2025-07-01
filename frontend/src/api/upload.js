@@ -2,8 +2,7 @@
 export async function uploadPdf(file, userId) {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('user_id', userId);
-  const response = await fetch('http://localhost:8000/upload/pdf/', {
+  const response = await fetch(`http://localhost:8000/upload/pdf/?user_id=${encodeURIComponent(userId)}`, {
     method: 'POST',
     body: formData
   });

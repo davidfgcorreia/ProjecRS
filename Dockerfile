@@ -10,7 +10,4 @@ COPY ./app ./app
 # Ensure storage directories exist
 RUN mkdir -p /app/app/storage/pdfs /app/app/storage/temp /app/app/storage/results /app/app/storage/reports
 
-# Ensure DB is initialized before starting the app
-RUN PYTHONPATH=. python -m app.init_db
-
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
