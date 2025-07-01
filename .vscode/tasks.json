@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run FastAPI (local)",
+      "type": "shell",
+      "command": "uvicorn app.main:app --reload",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Init DB (SQLite)",
+      "type": "shell",
+      "command": "python -c 'from app.db.database import Base, engine; Base.metadata.create_all(bind=engine)'",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker Compose Up",
+      "type": "shell",
+      "command": "docker-compose up --build",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
