@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.uploaded_file import UploadedFile
 from app.models.query import Query
 from app.models.query_file import QueryFile
+from app.models.table_data import TableData
 
 # Use in-memory SQLite for all tests
 TEST_SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -51,3 +52,20 @@ def test_query_and_query_file(db):
     db.add(qf)
     db.commit()
     assert db.query(QueryFile).filter_by(query_id=query.id, file_id=file.id).first() is not None
+
+def test_table_data_create(db):
+    # Create a TableData row and verify it can be queried
+    table_data = TableData(
+        query_id=1,
+        userid=1,
+        num_rows=2,
+        row_ids=["row1", "row2"],
+        columns_content=[["a", "b"], ["c", "d"]]
+    )
+    db.add(table_data)
+    db.commit()
+    result = db.query(TableData).filter_by(query_id=1).first()
+    assert result is not None
+    assert result.num_rows == 2
+    assert result.row_ids == ["row1", "row2"]
+    assert result.columns_content == [["a", "b"], ["c", "d"]]

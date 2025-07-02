@@ -10,7 +10,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    profiles: ["db", "all"]
   backend:
     build: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -23,7 +22,6 @@ services:
       - "8000:8000"
     depends_on:
       - db
-    profiles: ["backend", "all"]
   frontend:
     build:
       context: ./frontend
@@ -34,7 +32,14 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-    profiles: ["frontend", "all"]
+  test:
+    build: .
+    command: pytest --maxfail=1 --disable-warnings -v
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: sqlite:///./test_table_data.db
+    profiles: ["test"]
 volumes:
   postgres_data:
 

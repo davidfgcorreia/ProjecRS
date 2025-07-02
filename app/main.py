@@ -3,11 +3,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import user
 from app.api import upload
 from app.api import result
+from app.api import table_data
 from app.db.database import Base, engine, init_admin_user
 import time
 from sqlalchemy.exc import OperationalError
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    max_tries = 10
+    for i in range(max_tries):
+        try:
+            Base.metadata.create_all(bind=engine)
+            init_admin_user()
+            break
+        except OperationalError as e:
+            print(f"Database not ready, retrying in 3s... ({i+1}/{max_tries})")
+            time.sleep(3)
+    else:
+        raise RuntimeError("Database connection failed after retries.")
+    yield
+    # (Optional) Add shutdown logic here
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,18 +38,4 @@ app.add_middleware(
 app.include_router(user.router)
 app.include_router(upload.router)
 app.include_router(result.router)
-
-
-@app.on_event("startup")
-def on_startup():
-    max_tries = 10
-    for i in range(max_tries):
-        try:
-            Base.metadata.create_all(bind=engine)
-            init_admin_user()
-            break
-        except OperationalError as e:
-            print(f"Database not ready, retrying in 3s... ({i+1}/{max_tries})")
-            time.sleep(3)
-    else:
-        raise RuntimeError("Database connection failed after retries.")
+app.include_router(table_data.router)
