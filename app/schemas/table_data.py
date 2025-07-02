@@ -1,12 +1,12 @@
 from pydantic import BaseModel, ConfigDict, conint
-from typing import List, Annotated
+from typing import List, Annotated, Optional
 
 class TableDataBase(BaseModel):
     query_id: int
     userid: int
     num_rows: Annotated[int, conint(ge=1)]
     row_ids: List[str]
-    columns_content: List[List[str]]
+    columns_content: Optional[List[List[str]]] = None
 
 class TableDataCreate(TableDataBase):
     pass

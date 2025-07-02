@@ -16,11 +16,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useGlobalStore } from '@/stores/global'
 
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const router = useRouter()
+const globalStore = useGlobalStore()
 
 async function login() {
   error.value = ''
@@ -34,6 +36,7 @@ async function login() {
       if (user) {
         // Optionally check password here if backend supports it
         localStorage.setItem('user_id', user.id)
+        globalStore.setUserId(user.id)
         router.push('/upload')
         return
       }
@@ -50,6 +53,7 @@ function goToRegister() {
 
 function skipLoginDev() {
   localStorage.setItem('user_id', 1)
+  globalStore.setUserId(1)
   router.push({ name: 'Upload' })
 }
 </script>

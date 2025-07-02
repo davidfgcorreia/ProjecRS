@@ -1,6 +1,26 @@
+import os
+import shutil
+
 from sqlalchemy.orm import Session
 from app.models.table_data import TableData
 from app.schemas.table_data import TableDataCreate
+
+STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../storage'))
+
+
+def move_query_pdfs_to_temp(query_id):
+    """
+    Move all PDFs for this query to a temporary folder in storage.
+    """
+    pdfs_dir = os.path.join(STORAGE_DIR, 'pdfs')
+    temp_dir = os.path.join(STORAGE_DIR, 'temporary', f'query_{query_id}')
+    os.makedirs(temp_dir, exist_ok=True)
+    for filename in os.listdir(pdfs_dir):
+        if filename.endswith('.pdf') and f'query_{query_id}' in filename:
+            src = os.path.join(pdfs_dir, filename)
+            dst = os.path.join(temp_dir, filename)
+            shutil.move(src, dst)
+    return temp_dir
 
 
 def modular_processing_and_store(data: TableDataCreate, db: Session):
@@ -8,8 +28,13 @@ def modular_processing_and_store(data: TableDataCreate, db: Session):
     Process and fill the columns_content of the table, then store it in the database.
     This is a placeholder for modular processing logic.
     """
-    # Example: Fill columns_content with dummy data (replace with real logic)
-    filled_content = [[f"cell_{i}_{j}" for j in range(len(data.row_ids))] for i in range(data.num_rows)]
+    # Move PDFs for this query to a temp folder
+    move_query_pdfs_to_temp(data.query_id)
+    # Always generate columns_content if not provided
+    if not data.columns_content:
+        filled_content = [[f"cell_{i}_{j}" for j in range(len(data.row_ids))] for i in range(data.num_rows)]
+    else:
+        filled_content = data.columns_content
     # Create a new TableData instance or update existing one
     table = db.query(TableData).filter(TableData.query_id == data.query_id).first()
     if table:

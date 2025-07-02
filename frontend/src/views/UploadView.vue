@@ -15,11 +15,13 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { uploadPdf } from '../api/upload'
+import { useGlobalStore } from '@/stores/global'
 
 const files = ref([])
 const error = ref('')
 const success = ref(false)
 const router = useRouter()
+const globalStore = useGlobalStore()
 
 function handleFiles(event) {
   files.value = Array.from(event.target.files)
@@ -28,15 +30,19 @@ function handleFiles(event) {
 async function uploadFiles() {
   error.value = ''
   success.value = false
-  const userId = localStorage.getItem('user_id')
+  const userId = globalStore.userId || localStorage.getItem('user_id')
   if (!userId) {
     error.value = 'User not logged in.'
     return
   }
   try {
+    let lastQueryId = null
     for (const file of files.value) {
-      await uploadPdf(file, userId)
+      const res = await uploadPdf(file, userId)
+      // If uploadPdf returns queryId, set it
+      if (res && res.query_id) lastQueryId = res.query_id
     }
+    if (lastQueryId) globalStore.setQueryId(lastQueryId)
     success.value = true
     router.push({ name: 'ChooseTable' })
   } catch (err) {
