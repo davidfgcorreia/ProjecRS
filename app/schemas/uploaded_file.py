@@ -12,4 +12,5 @@ class UploadedFileCreate(BaseModel):
 class UploadedFileRead(UploadedFileBase):
     id: int
     user_id: int
+    query_id: str
     model_config = ConfigDict(from_attributes=True)

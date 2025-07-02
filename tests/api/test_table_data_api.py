@@ -29,7 +29,7 @@ def create_query(user_id):
 
 def test_post_and_get_table_data():
     user_id = create_user()
-    query_id = create_query(user_id)
+    query_id = str(create_query(user_id))  # ensure query_id is a string
     data = {
         "query_id": query_id,
         "userid": user_id,

@@ -1,11 +1,13 @@
 import os
 import shutil
+import re
 
 from sqlalchemy.orm import Session
 from app.models.table_data import TableData
 from app.schemas.table_data import TableDataCreate
 
-STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../storage'))
+STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../storage'))
+print(f"[DEBUG] BACKEND STORAGE_DIR: {STORAGE_DIR}")
 
 
 def move_query_pdfs_to_temp(query_id):
@@ -15,11 +17,21 @@ def move_query_pdfs_to_temp(query_id):
     pdfs_dir = os.path.join(STORAGE_DIR, 'pdfs')
     temp_dir = os.path.join(STORAGE_DIR, 'temporary', f'query_{query_id}')
     os.makedirs(temp_dir, exist_ok=True)
+    # Ensure the pdfs_dir exists before listing
+    if not os.path.exists(pdfs_dir):
+        os.makedirs(pdfs_dir, exist_ok=True)
+        return temp_dir
+    # Match pattern: pdf_<user_id>_<query_id>_*.pdf
+    pattern = re.compile(rf"^pdf_\d+_{query_id}_.+\.pdf$")
+    print(f"[DEBUG] Files in pdfs_dir: {os.listdir(pdfs_dir)}")
+    matched = []
     for filename in os.listdir(pdfs_dir):
-        if filename.endswith('.pdf') and f'query_{query_id}' in filename:
+        if pattern.match(filename):
+            matched.append(filename)
             src = os.path.join(pdfs_dir, filename)
             dst = os.path.join(temp_dir, filename)
             shutil.move(src, dst)
+    print(f"[DEBUG] Matched and moved: {matched}")
     return temp_dir
 
 

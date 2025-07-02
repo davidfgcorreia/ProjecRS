@@ -20,6 +20,7 @@ def test_upload_pdf_success():
     data = resp.json()
     assert data["filename"].endswith(".pdf")
     assert data["user_id"] == user_id
+    assert "query_id" in data
 
 def test_upload_pdf_user_not_found():
     files = {"file": ("test.pdf", b"%PDF-1.4 test pdf content", "application/pdf")}

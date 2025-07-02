@@ -25,6 +25,7 @@ def test_upload_pdf(monkeypatch):
     data = response.json()
     assert data["filename"].endswith(".pdf")
     assert data["user_id"] == user_id
+    assert "query_id" in data
 
 def test_get_result_table(monkeypatch):
     unique_email = f"queryuser_{uuid.uuid4().hex}@example.com"

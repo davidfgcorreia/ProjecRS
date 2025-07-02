@@ -12,10 +12,14 @@ REPORTS_DIR = os.path.join(STORAGE_DIR, 'reports')
 for d in [PDF_DIR, TEMP_DIR, RESULTS_DIR, REPORTS_DIR]:
     os.makedirs(d, exist_ok=True)
 
-def save_pdf(upload_file: UploadFile) -> str:
-    filename = upload_file.filename or 'file.pdf'
-    ext = os.path.splitext(filename)[1]
-    unique_name = f"{uuid4().hex}{ext}"
+def save_pdf(upload_file: UploadFile, user_id: int, query_id: str) -> str:
+    """
+    Save uploaded PDF with a clear, accessible filename format:
+    pdf_{user_id}_{query_id}_{original_filename}_{uuid}.pdf
+    """
+    original_filename = os.path.splitext(upload_file.filename or 'file.pdf')[0]
+    ext = os.path.splitext(upload_file.filename or 'file.pdf')[1]
+    unique_name = f"pdf_{user_id}_{query_id}_{original_filename}_{uuid4().hex}{ext}"
     file_path = os.path.join(PDF_DIR, unique_name)
     with open(file_path, "wb") as f:
         f.write(upload_file.file.read())

@@ -7,8 +7,14 @@ export async function sendTableData({ query_id, userid, num_rows, row_ids }) {
     body: JSON.stringify({ query_id, userid, num_rows, row_ids })
   })
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.detail || 'Failed to send table data')
+    let errText = 'Failed to send table data';
+    try {
+      const err = await response.json();
+      errText = typeof err === 'string' ? err : JSON.stringify(err, null, 2);
+    } catch (e) {
+      errText = await response.text();
+    }
+    throw new Error(errText);
   }
   return response.json()
 }

@@ -36,13 +36,14 @@ async function uploadFiles() {
     return
   }
   try {
-    let lastQueryId = null
+    let firstQueryId = null
     for (const file of files.value) {
       const res = await uploadPdf(file, userId)
-      // If uploadPdf returns queryId, set it
-      if (res && res.query_id) lastQueryId = res.query_id
+      if (res && res.query_id && !firstQueryId) {
+        firstQueryId = res.query_id
+        globalStore.setQueryId(firstQueryId)
+      }
     }
-    if (lastQueryId) globalStore.setQueryId(lastQueryId)
     success.value = true
     router.push({ name: 'ChooseTable' })
   } catch (err) {

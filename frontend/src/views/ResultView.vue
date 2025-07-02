@@ -1,14 +1,16 @@
 <template>
-  <div class="result-container">
+  <div class="result-container wide-result-bg">
     <h2>Upload Result</h2>
     <div v-if="loading" class="loading-screen">
       <div class="spinner"></div>
       <p>Loading table data...</p>
     </div>
-    <div v-else-if="table">
-      <h3>Table</h3>
-      <EasyDataTable :headers="headers" :items="items" />
-      <button disabled title="PDF download temporarily unavailable">Download as PDF</button>
+    <div v-else-if="table" class="result-table-outer">
+      <div class="result-table-inner wide-result-table">
+        <h3>Table</h3>
+        <EasyDataTable :headers="headers" :items="items" />
+        <button disabled title="PDF download temporarily unavailable">Download as PDF</button>
+      </div>
     </div>
     <div v-else-if="errorMsg">
       <p style="color:red">{{ errorMsg }}</p>
@@ -159,5 +161,29 @@ const items = computed(() => {
 }
 .easy-data-table__row--selected {
   background: #263043 !important;
+}
+
+.result-container.wide-result-bg {
+  max-width: 1400px;
+  min-width: 900px;
+  margin: 40px auto;
+  padding: 2em;
+  border: 1px solid #23272a;
+  border-radius: 18px;
+  background: #181a1b;
+  color: #e0e0e0;
+}
+.result-table-outer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.result-table-inner {
+  width: 100%;
+  max-width: 1200px;
+}
+.result-table-inner.wide-result-table {
+  max-width: 1400px;
+  min-width: 900px;
 }
 </style>

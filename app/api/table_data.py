@@ -12,7 +12,7 @@ router = APIRouter(prefix="/tabledata", tags=["tabledata"])
 
 @router.get("/", response_model=TableDataRead)
 def get_table_data(
-    query_id: int = Query(...),
+    query_id: str = Query(...),  # changed from int to str
     db: Session = Depends(get_db)
 ):
     table = db.query(TableData).filter(TableData.query_id == query_id).first()
