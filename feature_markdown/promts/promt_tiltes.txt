@@ -1,0 +1,20 @@
+Context:
+You are given, for each study, only the section titles and the index keys needed for extraction. Each input line is formatted as:
+indexes_<file_name>: <indexes> ; titles_<file_name>: <titles>
+- <indexes>: index keys (one per line) to match.
+- <titles>: section titles (one per line, in order, no duplicates).
+
+Task:
+For each input line, select the most relevant section titles from <titles> for each index in <indexes>. Only use section titles that are present in the respective file's <titles> list. Do not use section titles from other files.
+
+Selection Rule:
+If the probability of a section title containing the required information is uncertain, it is better to include the title than to exclude it.
+
+Output:
+For each input line, output a single line:
+; <file_name> ; selected titles (in order, separated by semicolons)
+
+- Leave an empty line between outputs for different files.
+- Only output exact section titles from the respective file's <titles>.
+- Do not output index keys, explanations, or any text not present in the respective file's <titles>.
+- Output each section title only once, even if it matches multiple index keys.

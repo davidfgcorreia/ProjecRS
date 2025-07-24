@@ -1,0 +1,133 @@
+You are given:
+
+A list of index keys (one per line). A list of Markdown (.md) files,
+each named <name>_tables.md, each containing one or more tables with
+medical study data.
+
+
+Task: For each file, and for each index key, extract values (≤ 5 words or a number each) that match directly from the Markdown tables, using semantic and synonymous matches.
+**You must only use information present in the individual file being analyzed. Do not use prior knowledge, training data, or information from other files. If a value is not found in the file, leave it blank.**
+
+Output (for each file in this order):
+
+If the study has multiple study instances, after the base file name (without the _tables.md extension), place the list of restrictors used to indicate the study instances (in order), in square brackets, before the semicolon.  
+Example:  
+base-file-name [mainrestrictor1, mainrestrictor2, ...]; index-key : value ; ...  
+If there are no study instances, just use:  
+base-file-name; index-key : value ; ...
+
+Extraction Rules:
+
+1. **Direct Extraction Only**:  
+   Only use values and restrictors that appear directly in the table structure (column headers, row headers, restrictors, or description).  
+   Do not infer or guess values that are not explicitly present.
+
+2. **Dynamic Header Mapping**:  
+   For each index key, match to the closest table header(s) using semantic similarity.  
+   Do not assume static header names.
+
+3. **Full Words for Text**:  
+   Use full words for names if present anywhere in the table (including description).  
+   Do not guess or expand acronyms unless the full word is provided in the table.
+
+4. **Standard Abbreviations**:  
+   For dosage/frequency, use standard pharmaceutical abbreviations (e.g., "b.i.d.", "q.d.").  
+   For sample size, use the number as shown (e.g., "N = 35" → "35").
+   If dosage/frequency is written in full text (e.g., "twice daily", "once daily", "every 12 hours"), convert it to the standard abbreviation ("b.i.d.", "q.d.", "q12h").  
+   If the notation is different but means the same, interpret and convert to the standard abbreviation.
+
+5. **Compound Names**:  
+   For any compound or intervention, use only the main investigational compound (not active comparators or controls) for the relevant index key.  
+   For comparators, use all other compounds or controls (including active comparators and vehicles), using only the compound name (no dosage, frequency, or acronyms).  
+   If the comparator is a vehicle, use the full term as shown (e.g., "Vehicle ointment").  
+   Do not include comparator dosages in the intervention-dosage field. If comparator dosages are needed, use a separate field.
+
+6. **Branching and Restrictors**:  
+   If a study has multiple branches (e.g., study instances, groups, dosages, comparators), output all values for each index key in the order they appear, separated by " // ".  
+   For each value, write the corresponding branch element before the value in parentheses, using this format: ((restrictor1, restrictor2,...)).  
+   **Always include all relevant restrictors (such as study instance, dosage, comparator, etc.) for each branched value, in the order they appear in the table structure.**  
+   Do not include comparator related values in the intervention related  (e.g., in age or sample for the intervention do not include the comparators values).
+   **However, if all values for an index key are identical across all branches, write the value only once without any restrictors (branch indicators), even if the table is branched.**  
+   Only use branching when the values differ between branches.
+
+   **If a table branches using one of the previous fields (for example, dosages), the branch names will be the values from that field.**  
+   Ensure non study instance restrictors match the corresponding value using the normalized version for both value and restrictor (e.g., original value = 0.15% QD, normalized value = 0.15% q.d., restrictor = 0.15% q.d.).
+   For example, if the branching values were "0.75% cream QD" and "1.5% cream BID", then:
+   some-dosage-index : ((0.75% cream b.i.d.))0.75% cream q.d. // ((1.5% cream b.i.d.))1.5% cream b.i.d. ;
+   some-sample-size-index : ((0.75% cream)) 252 // ((1.5% cream)) 253 ;
+
+   **For comparator sample size, use as restrictors the normalized values from the comparator name field (e.g., "Vehicle", "Triamcinolone acetonide cream").
+
+   **Order of Restrictors:**  
+   When listing restrictors in parentheses, always preserve the order in which the branches appear in the table structure (e.g., study instance first, then comparator, then dosage, etc.). This ensures the restrictors reflect the table's branching hierarchy and avoid confusion.
+
+   **Study Instance Detection:**  
+   When extracting study instances, always treat any top-level column or row group headers (such as "TRuE-AD1", "TRuE-AD2", or similar study names/labels) as study instance restrictors, even if they are not explicitly labeled as "study instance".  
+   If a table is split into sections or columns by such headers, use these as the first restrictor in the restrictor list for all relevant branched values.  
+   This ensures all study instances are captured, regardless of their position or labeling in the table.
+
+7. **Region Merging**:  
+   If the index refers to places or regions, merge all values into one (e.g., "England, Poland").
+
+8. **Experiment Time**:  
+   For the followup-weeks index, only the full time of the experiment and do not guess.
+
+9. **Output Format**:  
+   Use this exact format for output:  
+   base-file-name [restrictor1, restrictor2, ...]; index-key : value ; index-key : value ; ... (one line per file)
+   or, if no study instances:  
+   base-file-name; index-key : value ; index-key : value ; ... (one line per file)
+
+10. **Missing Values**:  
+   If a value is not found, leave it empty (e.g., some-index : ;).
+
+Only output the requested result. Do not include explanations
+
+Example:
+
+
+indexes.txt
+year of publication
+RCT phase
+Region
+Background Therapy
+intervention-name
+intervention-dosage
+intervention-age
+intervention-sample-size
+comparator-name
+comparator-sample-size
+followup-weeks
+
+Nakagawa 2020_tables.md
+| Characteristics                             | Vehicle ointment (n = 52) | Delgocitinib 0.5% ointment (n = 106) | Total (N = 158) |
+|---------------------------------------------|---------------------------|--------------------------------------|-----------------|
+| Age, y, mean (SD)                           | 32.3 (11.2)               | 31.4 (9.6)                           | 31.7 (10.1)     |
+| Men                                         | 34 (65.4)                 | 64 (60.4)                            | 98 (62.0)       |
+| Women                                       | 18 (34.6)                 | 42 (39.6)                            | 60 (38.0)       |
+| Duration of AD, y, mean (SD)                | 24.8 (11.1)               | 24.7 (9.7)                           | 24.8 (10.2)     |
+| mEASI score, mean (SD)                      | 14.5 (3.8)                | 14.2 (3.5)                           | 14.3 (3.6)      |
+
+Nakagawa 2018_tables.md
+|                                    | Vehicle (n = 31) | 0.25% (n = 69) | 0.5% (n = 65) | 1% (n = 66) | 3% (n = 65) | Tacrolimus (n = 30) | Total (n = 326) |
+|------------------------------------|------------------|----------------|---------------|-------------|-------------|---------------------|-----------------|
+| Age (years)                        | 31.6 ± 9.6       | 31.5 ± 10.5    | 29.5 ± 9.2    | 28.6 ± 8.7  | 32.3 ± 10.6 | 33.1 ± 11.6         | 30.8 ± 10.0     |
+| Male                               | 19 (61)          | 48 (70)        | 39 (60)       | 48 (73)     | 42 (65)     | 14 (47)             | 210 (64.4)      |
+| Female                             | 12 (39)          | 21 (30)        | 26 (40)       | 18 (27)     | 23 (35)     | 16 (53)             | 116 (35.6)      |
+
+
+
+
+Papp 2021_tables.md (excerpt from real table)
+|                               |        TRuE-AD1   |                          |                         |        TRuE-AD2   |                          |                             |
+| Characteristic                | Vehicle (n = 126) | 0.75% RUX cream (n = 252) | 1.5% RUX cream (n = 253) | Vehicle (n = 124) | 0.75% RUX cream (n = 248) | 1.5% RUX cream (n = 246) |
+|-------------------------------|-------------------|--------------------------|-------------------------|-------------------|--------------------------|-----------------------------|
+| Age, median (IQR), years      | 31.5 (20.0-49.0)  | 34.0 (19.0-51.0)         | 30.0 (19.0-47.0)        | 37.5 (21.5-53.5)  | 33.0 (19.0-52.0)         | 32.0 (21.0-49.0)            |
+| Region, n (%)                 | North America 88  | North America 176        | North America 176       | Europe 38         | Europe 76                | Europe 77                   |
+
+output_indexes.txt
+Nakagawa 2020; year of publication : ; RCT phase : ; Region : ; Background Therapy : ; intervention-name : Delgocitinib ; intervention-dosage : 0.5%  ; intervention-age : 31.4 (9.6) ; intervention-sample-size : 106 ; comparator-name : Vehicle ointment ; comparator-sample-size : 52 ; followup-weeks : ;
+
+Nakagawa 2018; year of publication : ; RCT phase : ; Region : ; Background Therapy : ; intervention-name : ; intervention-dosage : ((0.25%))0.25% // ((0.5%))0.5% // ((1%))1% // ((3%))3% ; intervention-age : ((0.25%))31.5 ± 10.5 // ((0.5%))29.5 ± 9.2 // ((1%))28.6 ± 8.7 // ((3%))32.3 ± 10.6 ; intervention-sample-size : ((0.25%))69 // ((0.5%))65 // ((1%))66 // ((3%))65 ; comparator-name : ((Vehicle))Vehicle // ((Tacrolimus))Tacrolimus ; comparator-sample-size : ((Vehicle))31 // ((Tacrolimus))30 ; followup-weeks : ;
+
+Papp 2021 [TRuE-AD1, TRuE-AD2]; year of publication : ; RCT phase : ; Region : North America, Europe ; Background Therapy : ; intervention-name : Ruxolitinib ; intervention-dosage : ((TRuE-AD1, 0.75%))0.75% cream // ((TRuE-AD1, 1.5%))1.5% cream // ((TRuE-AD2, 0.75%))0.75% cream // ((TRuE-AD2, 1.5%))1.5% cream ; intervention-age : ((TRuE-AD1, 0.75%))34.0 (19.0-51.0) // ((TRuE-AD1, 1.5%))30.0 (19.0-47.0) // ((TRuE-AD2, 0.75%))33.0 (19.0-52.0) // ((TRuE-AD2, 1.5%))32.0 (21.0-49.0) ; intervention-sample-size : ((TRuE-AD1, 0.75%))252 // ((TRuE-AD1, 1.5%))253 // ((TRuE-AD2, 0.75%))248 // ((TRuE-AD2, 1.5%))246 ; comparator-name : ((TRuE-AD1))Vehicle // ((TRuE-AD2))Vehicle ; comparator-sample-size : ((TRuE-AD1, Vehicle))126 // ((TRuE-AD2, Vehicle))124 ; followup-weeks :;

@@ -1,0 +1,26 @@
+You are an expert clinical data processor.
+
+Given:
+- A markdown table stored in a file (e.g. all_tables_merged)
+- A set of clinical trial summaries stored in files
+
+Your task:
+- For each row and cell in the markdown table, check the corresponding values against the clinical trial summaries.
+- If a value is incorrect or does not follow the formatting of the remaining lines in the same column, fix it to match the correct format and value.
+- Complete missing values in the table using the trial information.
+- Correct any discrepancies in the table based on the trial data.
+- Keep the table structure and formatting unchanged.
+- If a trial in the summary is not present in the table, add a new row for it, following the table structure and column formatting.
+- If a table row does not match any trial summary, leave it unchanged.
+- When updating or adding values, always follow the input table's value formatting (e.g., number formats, units, punctuation, spacing, etc.) and ensure consistency with other lines in the same column.
+
+Instructions:
+1. Read the markdown table from its file.
+2. Read the clinical trial summaries from their files.
+3. For each table row and cell, check if the trial name, phase, background therapy, region, or follow-up weeks match the clinical trial summaries and column formatting.
+4. If a value is missing, incorrect, or formatted differently from other lines in the same column, update the table cell with the correct value and format from the trial summary and column.
+5. Return only the updated markdown table as text, no explanations.
+
+
+Output:
+- The updated markdown table as text.

@@ -7,3 +7,15 @@ python-multipart
 pytest-cov
 alembic
 httpx
+pdfplumber
+PyMuPDF
+# For best PDF text extraction, install poppler-utils (provides pdftotext) via your OS package manager:
+# sudo apt-get install poppler-utils
+# Optional for OCR captions
+tesseract
+pytesseract
+Pillow
+opencv-python
+spacy
+# For English NLP model
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl

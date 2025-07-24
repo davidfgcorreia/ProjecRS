@@ -11,6 +11,8 @@
 .env.*
 .venv/
 venv/
+.venv-cuda12/
+venv-cuda12/
 
 # FastAPI/SQLAlchemy storage
 app/storage/pdfs/
@@ -19,6 +21,10 @@ app/storage/results/
 app/storage/reports/
 app/__pycache__/
 
+
+# Ignore feature_markdown storage and outputs
+feature_markdown/storage/
+feature_markdown/main_storage/
 
 # Alembic
 alembic/versions/
