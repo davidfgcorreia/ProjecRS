@@ -1,0 +1,82 @@
+You are given:
+
+Two sets of files for multiple studies:
+
+For each study, there are two files:
+1. A file named with the study name (no ending), containing a list of index keys (one per line).
+2. A file with the same study name plus the ending "_selected_sections", which is a Markdown (.md) file containing text (not necessarily tables) with medical study data.
+
+Task:
+For each file, and for each index key, extract values (≤ 5 words or a number each) that match directly from the Markdown file, using semantic and synonymous matches. After each value, place in curly braces {} the original transcript (verbatim text) of the information as it appears in the file (e.g., the full sentence, phrase, or section where the value was found).
+
+You must only use information present in the individual file being analyzed. Do not use prior knowledge, training data, or information from other files. If a value is not found in the file, leave it blank.
+
+Output (for each file in this order):
+
+If the study has multiple study instances, after the base file name (without the _selected_sections.md extension), place the list of restrictors used to indicate the study instances (in order), in square brackets, before the semicolon.  
+Example:  
+base-file-name [mainrestrictor1, mainrestrictor2, ...]; index-key : value {original transcript} ; ...  
+If there are no study instances, just use:  
+base-file-name; index-key : value {original transcript} ; ...
+
+Extraction Rules:
+
+1. **Direct Extraction**:    
+   Do not infer or guess values that are not explicitly present, except as allowed in rule 4 for RCT phase.
+
+2. **Experiment Time**:  
+   For the followup-weeks index, extract only the main follow-up time for the experiment (the primary or initial period, not extensions or open-label phases). Do not guess.
+
+3. **Index File Main Restrictors**:  
+   If the first line in the index file is "main_restrictors : [...]" or similar, treat it only as context for study instance branching and not as an index key to extract a value for.  
+   Only extract values for the actual index keys listed after that line.
+
+4. **RCT Phase Extraction (with Inference)**:  
+   For the "RCT phase" index, extract only the phase number in Roman numerals (e.g., "II", "III", "IIa") as it appears in the Markdown file.  
+   If the phase is not explicitly stated, you may infer the RCT phase from context, such as section headers, study design descriptions, or known study naming conventions (e.g., "TRuE-AD1/2" indicating phase III).  
+   Do not include any other text or description. After the value, include the original transcript in curly braces.
+
+5. **Background Therapy Extraction**:  
+    Extract only those background therapies or concomitant treatments that are explicitly permitted or required for all participants during the main study period, as described in the Markdown file.  
+    - If background therapy is explicitly stated as "none", use "none".  
+    - If specific background therapies (e.g., "bland emollients", "oral antihistamines", "topical corticosteroids as rescue") are allowed or required for all participants, list them as shown, separated by commas.  
+    - Only include therapies that are permitted for all participants. Do not include medications that are only allowed for worst-case situations, usage as needed, or for a subset of participants, unless the file specifies that rescue therapy is allowed for all.  
+    - Do not include interventions or comparators as background therapy.  
+    - If background therapy is not explicitly mentioned or present in the Markdown file, use "none or in the complementary file".
+    - After the value, include the original transcript in curly braces.
+
+6. **Output Format**:  
+   Use this exact format for output:  
+   base-file-name [restrictor1, restrictor2, ...]; index-key : value {original transcript} ; index-key : value {original transcript} ; ... (one line per file)
+   or, if no study instances:  
+   base-file-name; index-key : value {original transcript} ; index-key : value {original transcript} ; ... (one line per file)
+
+7. **Missing Values**:  
+   If a value is not found, leave it empty (e.g., some-index : ;).
+
+8. **Complementary File Reference**:
+    If a value is indicated in the Markdown file as "see complementary file" or similar (e.g., "see Table S1", "see Supporting Information", "see Supplemental Appendix"), write in the value: comp_file_n{number} (where {number} is a unique integer for each complementary file reference in the output), and in curly braces include the original transcript.
+    Example:
+    some-index : comp_file_n1 {see Table S1} ;
+
+---
+**Example:**
+
+Suppose you have:
+
+Index file:
+main_restrictors : [A]
+year of publication
+RCT phase
+Background Therapy
+intervention-name
+comparator-name
+comparator-dosage
+
+Markdown file:
+"""
+This is a phase IIa randomized controlled trial. All participants were required to use bland emollients during the study. Rescue topical corticosteroids were permitted only for those with severe flares. The intervention was Tofacitinib 2% b.i.d. Comparator was Vehicle ointment.
+"""
+
+Output:
+Bissonnette 2016 [A]; year of publication : ; RCT phase : IIa {phase IIa randomized controlled trial} ; Background Therapy : bland emollients {All participants were required to use bland emollients during the study.} ; intervention-name : Tofacitinib {The intervention was Tofacitinib 2% b.i.d.} ; comparator-name : Vehicle {Comparator was Vehicle ointment.} ; comparator-dosage : ;

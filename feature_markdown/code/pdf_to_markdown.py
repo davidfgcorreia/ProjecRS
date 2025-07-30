@@ -2,6 +2,7 @@ import os
 import subprocess
 import tempfile
 import json
+import time
 
 
 
@@ -49,6 +50,7 @@ def batch_convert_pdfs(pdf_dir, output_dir, gimimy_api_key=None):
     for fname in os.listdir(pdf_dir):
         if fname.lower().endswith('.pdf'):
             run_marker_on_pdf(os.path.join(pdf_dir, fname), output_dir, gimimy_api_key)
+            time.sleep(15)  # Avoid rate limiting issues
 
 def main():
     import argparse

@@ -1,3 +1,62 @@
+import re
+def preprocess_step_label_identifiers_with_branch(lines):
+    """
+    For identifier keys (id, identifier, NCT, RCT, etc.), if there are multiple branches and multiple values separated by ',',
+    label each value with its branch, e.g.:
+    RCT identifer: NCT03334396, NCT03334422 -> RCT identifer: ((mainbranch1))NCT03334396 // ((mainbranch2))NCT03334422
+    """
+    identifier_keys = ['id', 'identifier', 'identifiers', 'trial_id', 'study_id']
+    processed_lines = []
+    # Try to extract main branches from the first restrictors line
+    main_branches = []
+    if lines:
+        first_line = lines[0].strip()
+        if first_line.startswith('main_restrictors') or first_line.startswith('restrictors'):
+            m = re.search(r'\[(.*?)\]', first_line)
+            if m:
+                # Preserve order as in restrictors line
+                main_branches = [b.strip() for b in m.group(1).split(',') if b.strip()]
+    for line in lines:
+        line = line.strip()
+        if not line or ':' not in line:
+            processed_lines.append(line)
+            continue
+        key, value = line.split(':', 1)
+        key = key.strip()
+        value = value.strip()
+        is_identifier = any(k in key.lower() for k in identifier_keys)
+        # Check for @@...@@ localization marker at the end (after value, possibly after spaces)
+        loc_marker = None
+        m = re.search(r'(.*?)(\s*(@@[^@]+@@))\s*$', value)
+        if m:
+            value_wo_loc = m.group(1).strip()
+            loc_marker = m.group(3)
+        else:
+            value_wo_loc = value
+        parsed = parse_branch_value(value_wo_loc)
+        branches = [b for b, v in parsed if b]
+        if is_identifier and ((len(set(branches)) > 1) or (main_branches and all(b == () for b, v in parsed))):
+            if all(b == () for b, v in parsed) and main_branches:
+                vals = [v for b, v in parsed for v in v.split(',') if v.strip()]
+                parts = []
+                for i in range(max(len(vals), len(main_branches))):
+                    val = vals[i] if i < len(vals) else ''
+                    branch = (main_branches[i],) if i < len(main_branches) else ()
+                    if branch and branch[0] and val:
+                        part = f"(({'{}'.format(','.join(branch))})){val.strip()}"
+                    elif val:
+                        part = val.strip()
+                    else:
+                        part = ''
+                    if part and loc_marker:
+                        part = f"{part} {loc_marker}"
+                    parts.append(part)
+                processed_lines.append(f"{key}: {' // '.join(parts)}")
+            else:
+                processed_lines.append(line)
+        else:
+            processed_lines.append(line)
+    return processed_lines
 def preprocess_step2_fill_missing_by_first_name(lines):
     """
     For each group of keys with the same first part (name1 in name1-name2),
@@ -107,6 +166,7 @@ def preprocess_step1_remove_branch_if_all_same(lines):
     if lines and (lines[0].strip().startswith("main_restrictors") or lines[0].strip().startswith("restrictors")):
         processed_lines.append(lines[0].rstrip())
         data_lines = lines[1:]
+    skip_keywords = ['frequency', 'dosage', 'dose', 'freq', 'interval']
     for line in data_lines:
         line = line.strip()
         if not line or ':' not in line:
@@ -114,6 +174,10 @@ def preprocess_step1_remove_branch_if_all_same(lines):
         key, value = line.split(':', 1)
         key = key.strip()
         value = value.strip()
+        # Skip if key contains frequency/dosage-like terms (case-insensitive)
+        if any(kw in key.lower() for kw in skip_keywords):
+            processed_lines.append(f"{key}: {value}")
+            continue
         parsed = parse_branch_value(value)
         values = [v for b, v in parsed if v]
         unique_values = set(values)
@@ -132,6 +196,8 @@ def preprocess_pipeline(lines):
     lines = preprocess_step1_remove_branch_if_all_same(lines)
     # Step 2: fill missing by first name
     lines = preprocess_step2_fill_missing_by_first_name(lines)
+    # New step: label identifiers with branch
+    lines = preprocess_step_label_identifiers_with_branch(lines)
     # Step 1: remove branch if all values are the same
     lines = preprocess_step1_remove_branch_if_all_same(lines)
     return lines

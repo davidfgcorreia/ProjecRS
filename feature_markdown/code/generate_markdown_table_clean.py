@@ -79,6 +79,21 @@ def resolve_conflicts(lines_branches, index_branch_names, main_branches=None):
     while conflicts_found:
         conflicts_found = False
         for k in range(len(lines_branches)):
+            # If any branch in the row has more than one identifier, all must share the same principal identifier
+            max_identifiers = max((len(branch) for branch in lines_branches[k] if branch), default=1)
+            if max_identifiers > 1:
+                # Prioritize the first principal identifier in the row
+                principal_ids = [branch[0] for branch in lines_branches[k] if branch]
+                if len(set(principal_ids)) > 1:
+                    keep_id = principal_ids[0]
+                    # Move all branches with other principal identifiers to the next line, preserving order
+                    for branch in list(lines_branches[k]):
+                        if branch and branch[0] != keep_id:
+                            print(f"Conflict detected in row {k}: splitting branch {branch}")
+                            lines_branches[(k + 1) % len(lines_branches)].append(branch)
+                            lines_branches[k].remove(branch)
+                            conflicts_found = True
+            # Continue with original conflict logic
             conter = 0
             while True:
                 branhequals = []
@@ -113,12 +128,23 @@ def resolve_conflicts(lines_branches, index_branch_names, main_branches=None):
                             lines_branches[k].pop(t)
                             conflicts_found = True
                 conter += 1
-        # After each pass, log the current state
     return lines_branches
 
 def build_table(data, keys, lines_branches, main_branches):
     table = [['' for _ in range(len(keys))] for _ in range(max(len(lines_branches), 1))]
+    # Identify frequency-like columns
+    freq_like_patterns = ['frequency', 'freq', 'interval']
     for k, key in enumerate(keys):
+        is_freq_col = any(pat in key.lower() for pat in freq_like_patterns)
+        # Check if only one value without branch exists for this key
+        non_branch_vals = [val for branch, val in data[key] if not branch]
+        branch_vals = [val for branch, val in data[key] if branch]
+        if is_freq_col and len(non_branch_vals) == 1 and not branch_vals and k > 0:
+            # Only fill the cell if the previous column (k-1) has a real non-empty value in the same row
+            for row in table:
+                if not row[k] and row[k-1]:
+                    row[k] = non_branch_vals[0]
+            continue
         for i, (branch, val) in enumerate(data[key]):
             if not branch:
                 if main_branches:

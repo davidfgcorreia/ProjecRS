@@ -17,7 +17,26 @@ def parse_and_write(input_file="../storage/output_file_promt_ai/output_indexes.t
             base = match.group(1).strip()
             restrictors = match.group(2)
             rest = match.group(3).strip()
-            segments = [seg.strip() for seg in rest.split(";") if seg.strip()]
+            # Split on semicolons not inside curly braces
+            def split_outside_curly(s):
+                segments = []
+                current = []
+                depth = 0
+                for c in s:
+                    if c == '{':
+                        depth += 1
+                    elif c == '}':
+                        if depth > 0:
+                            depth -= 1
+                    if c == ';' and depth == 0:
+                        segments.append(''.join(current).strip())
+                        current = []
+                    else:
+                        current.append(c)
+                if current:
+                    segments.append(''.join(current).strip())
+                return [seg for seg in segments if seg]
+            segments = split_outside_curly(rest)
             output_path = os.path.join(output_dir, f"{base}.txt")
             parsed_lines = []
             if restrictors:

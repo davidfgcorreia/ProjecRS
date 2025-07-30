@@ -12,74 +12,132 @@ Usage:
 """
 import os
 import glob
+import re
 
 DEFAULT_INPUT_DIR = "/root/documnetos/Estagio/projeto/feature_markdown/storage/markdown"
 DEFAULT_OUTPUT_DIR = "/root/documnetos/Estagio/projeto/feature_markdown/storage/pdfs_titles"
 
 def extract_titles_with_content(input_dir=DEFAULT_INPUT_DIR, output_dir=DEFAULT_OUTPUT_DIR):
     """
-    Extracts all markdown titles (headers) from all .md files in input_dir and writes them to .txt files in output_dir.
-    A title is only included if it is followed by at least two lines of non-title (non-header) text before the next title.
-    Titles are not deduplicated and are written in the order found.
+    Extracts all candidate titles from markdown files:
+    - Any line starting with '#' is a candidate title.
+    - If two candidate titles are consecutive, only include the second.
+    - Exclude weird titles: images, tables, DOIs, numbers, very short, or only symbols.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     md_files = glob.glob(os.path.join(input_dir, '**', '*.md'), recursive=True)
-    import re
     for md_file in md_files:
         titles = []
         with open(md_file, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         n = len(lines)
+        prev_was_title = False
         i = 0
         while i < n:
             line = lines[i].strip()
-            # Candidate title: markdown header or any line with 1-4 words
-            is_header = line.startswith('#')
-            candidate_title = None
-            if is_header:
-                candidate_title = line.lstrip('#').strip()
-            elif line and 1 <= len(line.split()) <= 4:
-                candidate_title = line
-            if candidate_title:
-                # Look ahead for at least 2 lines of non-title, non-empty text
-                content_lines = []
+            is_hash_title = line.startswith('#')
+            is_heuristic_title = False
+            if not is_hash_title:
+                if (2 <= len(line) <= 80 and
+                    not line.islower() and
+                    any(c.isalpha() for c in line) and
+                    not re.match(r'^\d+$', line) and
+                    not re.match(r'^DOI', line, re.IGNORECASE) and
+                    not re.match(r'^!\[.*\]\(.*\)$', line) and
+                    not re.match(r'^\|', line) and
+                    not re.match(r'^[^A-Za-z0-9]+$', line) and
+                    len(line.split()) <= 8):
+                    is_heuristic_title = True
+            skip_main_title = False
+            if is_hash_title:
                 j = i + 1
+                segment_titles = []
+                while j < n and lines[j].strip() == '':
+                    j += 1
+                    if j >= n:
+                        break
                 while j < n:
                     next_line = lines[j].strip()
-                    next_is_title = next_line.startswith('#') or (next_line and 1 <= len(next_line.split()) <= 4)
-                    if next_is_title:
+                    next_is_hash_title = next_line.startswith('#')
+                    next_is_heuristic_title = False
+                    if not next_is_hash_title:
+                        if (2 <= len(next_line) <= 80 and
+                            not next_line.islower() and
+                            any(c.isalpha() for c in next_line) and
+                            not re.match(r'^\d+$', next_line) and
+                            not re.match(r'^DOI', next_line, re.IGNORECASE) and
+                            not re.match(r'^!\[.*\]\(.*\)$', next_line) and
+                            not re.match(r'^\|', next_line) and
+                            not re.match(r'^[^A-Za-z0-9]+$', next_line) and
+                            len(next_line.split()) <= 8):
+                            next_is_heuristic_title = True
+                    if next_is_hash_title or next_is_heuristic_title:
+                        segment_titles.append(next_line)
+                        j += 1
+                        while j < n and lines[j].strip() == '':
+                            j += 1
+                            if j >= n:
+                                break
+                        if j >= n:
+                            break
+                    else:
                         break
-                    if next_line != '':
-                        content_lines.append(next_line)
-                    j += 1
-                if len(content_lines) >= 2:
-                    titles.append(candidate_title)
-                i = j
-            else:
+                if len(segment_titles) > 0:
+                    i = j
+                    prev_was_title = False
+                    continue
+            if (is_hash_title or is_heuristic_title) and not skip_main_title:
+                title = re.sub(r'[*_`#]', '', line).strip()
+                if not title or len(title) < 2:
+                    prev_was_title = True
+                    i += 1
+                    continue
+                if len(title.split()) > 20:
+                    prev_was_title = True
+                    i += 1
+                    continue
+                if title.islower() or (all(not c.isalpha() for c in title) and not any(c.isupper() for c in title)):
+                    prev_was_title = True
+                    i += 1
+                    continue
+                if re.match(r'^\d+$', title) or (len(title.split()) < 2 and not is_hash_title):
+                    prev_was_title = True
+                    i += 1
+                    continue
+                if (re.match(r'^DOI', title, re.IGNORECASE) or
+                    re.match(r'^!\[.*\]\(.*\)$', title) or
+                    re.search(r'<(div|span|sup|img|table|figure)[^>]*>', title) or
+                    re.match(r'^\|', title) or
+                    re.match(r'^[^A-Za-z0-9]+$', title) or
+                    re.match(r'^(Figure|Table)\s*\d+\.', title) or
+                    re.match(r'^<sup>.*</sup>', title) or
+                    title.startswith('!') or title.startswith('span') or title.startswith('<span')):
+                    prev_was_title = True
+                    i += 1
+                    continue
+                if re.search(r'(Table|Image|[Ff][Ii][Gg][Uu][Rr][Ee]|[Ff][Ii][Gg])([ ._\d]*)', title):
+                    prev_was_title = True
+                    i += 1
+                    continue
+                if sum(1 for c in title if not c.isalnum() and not c.isspace()) > len(title) // 2:
+                    prev_was_title = True
+                    i += 1
+                    continue
+                if prev_was_title:
+                    prev_was_title = False
+                    i += 1
+                    continue
+                titles.append(title)
+                prev_was_title = True
                 i += 1
-        # Classical title heuristics: filter out trash titles
-        filtered_titles = []
-        for title in titles:
-            # Must start with uppercase letter
-            if not title or not title[0].isupper():
-                continue
-            # Not all lowercase
-            if title.islower():
-                continue
-            # Not only numbers or symbols
-            if all(not c.isalpha() for c in title):
-                continue
-            # Not too short (e.g., 1 character)
-            if len(title) < 2:
-                continue
-
-            filtered_titles.append(title)
-        # Output file name
+            else:
+                prev_was_title = False
+                i += 1
         base = os.path.splitext(os.path.basename(md_file))[0]
         out_path = os.path.join(output_dir, f"{base}_titles.txt")
         with open(out_path, 'w', encoding='utf-8') as out_f:
-            for title in filtered_titles:
+            for title in titles:
                 out_f.write(title + '\n')
 
 def main():

@@ -16,8 +16,39 @@ def read_markdown(md_path):
     with open(md_path, 'r', encoding='utf-8') as f:
         return f.readlines()
 
-def find_sections(lines, titles, all_titles_set):
-    from rapidfuzz import fuzz, process
+def find_sections(lines, titles, all_titles_set, pdf_titles=None):
+    from rapidfuzz import fuzz
+    # If pdf_titles is provided, use it as delimiters
+    if pdf_titles is not None:
+        title_indices = []
+        for title in pdf_titles:
+            best_score = 0
+            best_idx = None
+            for idx, line in enumerate(lines):
+                line_stripped = line.lstrip('#').strip()
+                score = fuzz.ratio(title.lower(), line_stripped.lower())
+                if score > best_score:
+                    best_score = score
+                    best_idx = idx
+            if best_score >= 92 and best_idx is not None:
+                title_indices.append((title, best_idx))
+            else:
+                title_indices.append((title, None))
+        sections = []
+        for i, (title, start_idx) in enumerate(title_indices):
+            if start_idx is None:
+                continue
+            if i < len(title_indices) - 1:
+                next_found = None
+                for j in range(i+1, len(title_indices)):
+                    if title_indices[j][1] is not None:
+                        next_found = title_indices[j][1]
+                        break
+                end_idx = next_found if next_found is not None else len(lines)
+            else:
+                end_idx = len(lines)
+            sections.append((title, start_idx, end_idx))
+        return sections
 
     # Build a list of (line, idx) for all lines in the file
     all_lines_in_file = [(line.strip(), idx) for idx, line in enumerate(lines)]
@@ -110,7 +141,7 @@ def write_sections(lines, sections, output_path, all_titles_set):
                 f.write('\n')
 
 
-def process_all_files(titles_dir=None, markdown_dir=None, output_dir=None, all_titles_dir=None):
+def process_all_files(titles_dir=None, markdown_dir=None, output_dir=None, all_titles_dir=None, pdf_titles_dir=None):
     base_dir = Path(__file__).parent.parent
     # Ensure all input/output directories are Path objects
     if titles_dir is None:
@@ -141,30 +172,26 @@ def process_all_files(titles_dir=None, markdown_dir=None, output_dir=None, all_t
                 if t:
                     all_titles_set.add(t)
 
-    processed = 0
-    skipped = 0
+    if pdf_titles_dir is None:
+        pdf_titles_dir = base_dir / "main_storage" / "exemple2" / "pdfs_titles"
+    else:
+        pdf_titles_dir = Path(pdf_titles_dir)
     found_files = list(titles_dir.glob("*.txt"))
     for titles_path in found_files:
         basename = titles_path.stem  # e.g. "Bissonnette 2016"
         md_path = markdown_dir / basename / f"{basename}.md"
-        if not md_path.exists():
-            skipped += 1
+        pdf_titles_path = pdf_titles_dir / f"{basename}_titles.txt"
+        if not md_path.exists() or not pdf_titles_path.exists():
             continue
         output_path = output_dir / f"{basename}_selected_sections.md"
         titles = read_titles(titles_path)
-        if not titles:
-            skipped += 1
-            continue
+        pdf_titles = read_titles(pdf_titles_path)
         lines = read_markdown(md_path)
-        if not lines:
-            skipped += 1
-            continue
-        sections = find_sections(lines, titles, all_titles_set)
-        if not sections:
-            skipped += 1
-        else:
-            processed += 1
-        write_sections(lines, sections, output_path, all_titles_set)
+        sections = find_sections(lines, titles, all_titles_set, pdf_titles=pdf_titles)
+        # Filter sections to only those whose title is in the selected titles list
+        selected_titles_set = set(titles)
+        filtered_sections = [s for s in sections if s[0] in selected_titles_set]
+        write_sections(lines, filtered_sections, output_path, all_titles_set)
 
 def main():
     process_all_files()

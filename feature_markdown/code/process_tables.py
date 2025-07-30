@@ -19,9 +19,13 @@ def extract_dosage(dosage: str) -> Tuple[Optional[str], Optional[str]]:
     # Normalize frequency synonyms to standard abbreviations
     freq_map = {
         'once daily': 'q.d.',
+        'once-daily': 'q.d.',
         'twice daily': 'b.i.d.',
+        'twice-daily': 'b.i.d.',
         'three times daily': 't.i.d.',
+        'three-times-daily': 't.i.d.',
         'four times daily': 'q.i.d.',
+        'four-times-daily': 'q.i.d.',
         'b.i.d.': 'b.i.d.',
         'bid': 'b.i.d.',
         'q.d.': 'q.d.',
@@ -29,10 +33,36 @@ def extract_dosage(dosage: str) -> Tuple[Optional[str], Optional[str]]:
         't.i.d.': 't.i.d.',
         'tid': 't.i.d.',
         'q.i.d.': 'q.i.d.',
-        'qid': 'q.i.d.'
+        'qid': 'q.i.d.',
+        'once weekly': 'q.w.',
+        'once-weekly': 'q.w.',
+        'twice weekly': 'biw',
+        'twice-weekly': 'biw',
+        'three times weekly': 'tiw',
+        'three-times-weekly': 'tiw',
+        'four times weekly': 'qiw',
+        'four-times-weekly': 'qiw',
+        'q.w.': 'q.w.',
+        'qw': 'q.w.',
+        'biw': 'biw',
+        'tiw': 'tiw',
+        'qiw': 'qiw',
+        'every 2 weeks': 'q2w',
+        'every-2-weeks': 'q2w',
+        'every 4 weeks': 'q4w',
+        'every-4-weeks': 'q4w',
+        'every 3 weeks': 'q3w',
+        'every-3-weeks': 'q3w',
+        'every 1 week': 'qw',
+        'every-1-week': 'qw',
+        'every week': 'qw',
+        'every-week': 'qw',
+        'q2w': 'q2w',
+        'q3w': 'q3w',
+        'q4w': 'q4w'
     }
-    # Find all frequency notations in the string (with or without trailing dot)
-    freq_matches = re.findall(r'\b(b\.i\.d\.?|bid|q\.d\.?|qd|t\.i\.d\.?|tid|q\.i\.d\.?|qid|once daily|twice daily|three times daily|four times daily)\b', dosage, re.IGNORECASE)
+    # Find all frequency notations in the string (with or without trailing dot, and including 'every X weeks')
+    freq_matches = re.findall(r'\b(b\.i\.d\.?|bid|q\.d\.?|qd|t\.i\.d\.?|tid|q\.i\.d\.?|qid|once daily|once-daily|twice daily|twice-daily|three times daily|three-times-daily|four times daily|four-times-daily|once weekly|once-weekly|twice weekly|twice-weekly|three times weekly|three-times-weekly|four times weekly|four-times-weekly|every week|every-week|every \d+ weeks|every-\d+-weeks)\b', dosage, re.IGNORECASE)
     norm_freqs = []
     for f in freq_matches:
         f_lc = f.lower().replace(' ', '')
@@ -202,10 +232,14 @@ def process_markdown_table(md_path: str, out_path: str) -> None:
         freq_col_idxs = [i for i, col in enumerate(header) if re.search(r'frequency', col, re.IGNORECASE)]
         for freq_idx in freq_col_idxs:
             if freq_idx < len(row):
-                # Normalize frequency in this column
-                _, norm_freq = extract_dosage(row[freq_idx])
+                # Preserve localization marker if present
+                freq_val = row[freq_idx]
+                m = re.search(r'^(.*?)(\s*(@@[^@]+@@))\s*$', freq_val)
+                loc_marker = m.group(3) if m else ''
+                freq_val_wo_loc = m.group(1).strip() if m else freq_val
+                _, norm_freq = extract_dosage(freq_val_wo_loc)
                 if norm_freq:
-                    row[freq_idx] = norm_freq
+                    row[freq_idx] = norm_freq + (f' {loc_marker}' if loc_marker else '')
         # comparator-name: fix comparator
         row[idx_comp] = fix_comparator(row[idx_comp])
         # age: normalize if present
@@ -215,23 +249,42 @@ def process_markdown_table(md_path: str, out_path: str) -> None:
 
     # Capitalize only the first letter of each cell in all columns (header and rows),
     # but do NOT capitalize frequency columns (e.g., those with 'frequency' in the header)
-    def cap_first_alpha(s):
+    # Always preserve @@...@@ localization markers at the end of the value
+    def cap_first_alpha_preserve_loc(s):
         if not isinstance(s, str) or not s:
             return str(s)
-        for i, c in enumerate(s):
-            if c.isalpha():
-                return s[:i] + c.upper() + s[i+1:]
-        return s
+        # List of measurement units to NOT capitalize (add more as needed)
+        units = ['mg', 'g', 'kg', 'mcg', 'μg', 'ng', 'ml', 'l', 'mmol', 'mol', 'meq', 'iu', 'u', 'mIU', 'mm', 'cm', 'm', 'nmol', 'pmol', 'nm', 'pm', 'μl', 'ul', 'μM', 'mM', 'nM', 'pmol', 'mmHg', 'bpm', 'IU', 'U']
+        m = re.search(r'^(.*?)(\s*(@@[^@]+@@))\s*$', s)
+        def is_unit(word):
+            return word.lower() in [u.lower() for u in units]
+        if m:
+            main_val = m.group(1)
+            loc_marker = m.group(3)
+            # Split main_val into words to check for units
+            words = re.split(r'(\s+)', main_val)
+            for idx, w in enumerate(words):
+                if w and w.strip() and w[0].isalpha() and not is_unit(w.strip()):
+                    words[idx] = w[0].upper() + w[1:]
+                    break
+            return ''.join(words) + (" " if main_val and loc_marker else "") + loc_marker
+        else:
+            words = re.split(r'(\s+)', s)
+            for idx, w in enumerate(words):
+                if w and w.strip() and w[0].isalpha() and not is_unit(w.strip()):
+                    words[idx] = w[0].upper() + w[1:]
+                    break
+            return ''.join(words)
 
     # Identify frequency columns
     freq_col_idxs = [i for i, col in enumerate(header) if re.search(r'frequency', col, re.IGNORECASE)]
-    capitalized_header = [cap_first_alpha(col) for col in header]
+    capitalized_header = [cap_first_alpha_preserve_loc(col) for col in header]
     with open(out_path, 'w') as f:
         f.write('| ' + ' | '.join(capitalized_header) + ' |\n')
         f.write('|' + '|'.join(['---'] * len(header)) + '|\n')
         for row in new_rows:
             capitalized_row = [
-                (x if i in freq_col_idxs else cap_first_alpha(x))
+                (x if i in freq_col_idxs else cap_first_alpha_preserve_loc(x))
                 for i, x in enumerate(row)
             ]
             f.write('| ' + ' | '.join(capitalized_row) + ' |\n')

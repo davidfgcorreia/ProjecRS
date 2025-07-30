@@ -34,13 +34,28 @@ def save_as_docx(headers, rows, out_path):
     # Set page orientation to landscape
     section = doc.sections[0]
     section.orientation = WD_ORIENT.LANDSCAPE
-    section.page_width = Inches(11.69)
+    section.page_width = Inches(14)  # A4 landscape width
     section.page_height = Inches(8.27)
+    # Set left and right margins to zero for max width
+    section.left_margin = Inches(0)
+    section.right_margin = Inches(0)
 
     table = doc.add_table(rows=1 + len(rows), cols=len(headers))
     table.style = 'Table Grid'
-    # Set column widths to fit page width
-    col_width_in = 10.5 / len(headers)  # 10.5in for A4 landscape minus some margin
+    # Calculate available width (page width minus margins), all as float inches
+    def to_inches(val):
+        # Handles Inches, Length, or None
+        if val is None:
+            return 0.0
+        try:
+            return float(val.inches)
+        except AttributeError:
+            return float(val)
+    page_width = to_inches(section.page_width)
+    left_margin = to_inches(section.left_margin)
+    right_margin = to_inches(section.right_margin)
+    available_width = page_width - left_margin - right_margin
+    col_width_in = available_width / len(headers)
     for col in table.columns:
         for cell in col.cells:
             cell.width = Inches(col_width_in)
