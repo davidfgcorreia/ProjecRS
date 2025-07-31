@@ -11,14 +11,21 @@ import pandas as pd
 from docx import Document
 
 def parse_markdown_table(md_path):
-    """Parse markdown table and return headers and rows."""
+    """Parse markdown table and return headers and rows, ignoring elements inside @@...@@."""
+    import re
+    # Remove all occurrences of @@...@@ (non-greedy) and trailing abbreviations like ', q.d.'
+    def clean_cell(text):
+        text = re.sub(r'@@.*?@@', '', text)
+        # Remove trailing abbreviations (e.g., ', q.d.', ', b.i.d.', ', t.i.d.', ', q.i.d.')
+        text = re.sub(r',\s*(q\.d\.|b\.i\.d\.|t\.i\.d\.|q\.i\.d\.|prn|stat|p\.o\.|i\.v\.|i\.m\.|s\.c\.|p\.r\.|p\.c\.|a\.c\.|h\.s\.|a\.m\.|p\.m\.|n\.p\.|s\.l\.|o\.d\.|o\.s\.|o\.u\.|s\.o\.|c\.c\.|gtt|mcg|IU|U|mg|ml|L|g|kg|mEq|%)\s*$', '', text, flags=re.IGNORECASE)
+        return text.strip()
     with open(md_path, 'r', encoding='utf-8') as f:
         lines = [line.strip() for line in f if line.strip().startswith('|')]
     if not lines or len(lines) < 2:
         raise ValueError('No valid markdown table found.')
-    headers = [h.strip() for h in lines[0].split('|')[1:-1]]
+    headers = [clean_cell(h.strip()) for h in lines[0].split('|')[1:-1]]
     rows = [
-        [cell.strip() for cell in row.split('|')[1:-1]]
+        [clean_cell(cell.strip()) for cell in row.split('|')[1:-1]]
         for row in lines[2:]
     ]
     return headers, rows
