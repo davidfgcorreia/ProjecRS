@@ -5,7 +5,7 @@ import re
 from sqlalchemy.orm import Session
 from app.models.table_data import TableData
 from app.schemas.table_data import TableDataCreate
-#from app.processing_operation.code.clinical_pdf_pipeline import pipeline
+from app.processing_operation.clinical_pdf_pipeline import pipeline
 
 STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../storage'))
 print(f"[DEBUG] BACKEND STORAGE_DIR: {STORAGE_DIR}")
@@ -72,7 +72,7 @@ def modular_processing_and_store(data: TableDataCreate, db: Session):
                 f.write(f"{idx}\n")
     # Prossess columns_content and fill
 
-    # data= pipeline(temp_dir)
+    pipeline(generatemd=True,root_storage=temp_dir)  # Call the pipeline with the temp directory
 
     if not data.columns_content:
         filled_content = [[f"cell_{i}_{j}" for j in range(len(data.row_ids))] for i in range(data.num_rows)]

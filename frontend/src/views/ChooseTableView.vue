@@ -1,5 +1,6 @@
 <template>
   <div class="choose-table-bg">
+    <LoadingScreen v-if="isSubmitting" />
     <div class="choose-table-layout">
       <div class="stepper">
         <div class="step">
@@ -92,6 +93,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import LoadingScreen from '@/components/LoadingScreen.vue'
 import { useRouter } from 'vue-router'
 import { sendTableData } from '@/api/tableDataService'
 import { useGlobalStore } from '@/stores/global'

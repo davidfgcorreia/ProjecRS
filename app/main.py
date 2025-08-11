@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import user
 from app.api import upload
@@ -25,6 +26,9 @@ async def lifespan(app: FastAPI):
     yield
     # (Optional) Add shutdown logic here
 
+
+# Load .env for local development (has no effect in Docker if env vars are set by Docker)
+load_dotenv()
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
