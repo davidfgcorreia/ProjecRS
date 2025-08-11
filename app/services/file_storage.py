@@ -1,15 +1,13 @@
 import os
 from fastapi import UploadFile
 from uuid import uuid4
-from typing import Optional
 
 STORAGE_DIR = os.path.join(os.path.dirname(__file__), '../storage')
 PDF_DIR = os.path.join(STORAGE_DIR, 'pdfs')
-TEMP_DIR = os.path.join(STORAGE_DIR, 'temp')
 RESULTS_DIR = os.path.join(STORAGE_DIR, 'results')
 REPORTS_DIR = os.path.join(STORAGE_DIR, 'reports')
 
-for d in [PDF_DIR, TEMP_DIR, RESULTS_DIR, REPORTS_DIR]:
+for d in [PDF_DIR, RESULTS_DIR, REPORTS_DIR]:
     os.makedirs(d, exist_ok=True)
 
 def save_pdf(upload_file: UploadFile, user_id: int, query_id: str) -> str:
@@ -24,13 +22,6 @@ def save_pdf(upload_file: UploadFile, user_id: int, query_id: str) -> str:
     with open(file_path, "wb") as f:
         f.write(upload_file.file.read())
     return unique_name
-
-def save_temp_file(content: bytes, suffix: str = "") -> str:
-    filename = f"{uuid4().hex}{suffix}"
-    file_path = os.path.join(TEMP_DIR, filename)
-    with open(file_path, "wb") as f:
-        f.write(content)
-    return filename
 
 def save_result(content: bytes, suffix: str = "") -> str:
     filename = f"{uuid4().hex}{suffix}"

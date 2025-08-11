@@ -11,6 +11,7 @@ const routes = [
   { path: '/upload', name: 'Upload', component: UploadView },
   { path: '/choose-table', name: 'ChooseTable', component: ChooseTableView },
   { path: '/result/:count?', name: 'Result', component: ResultView, props: true },
+  { path: '/preview', name: 'Preview', component: () => import('../views/PreviewView.vue') },
 ]
 
 const router = createRouter({
