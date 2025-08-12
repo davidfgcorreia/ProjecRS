@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException # type: ignore
+from sqlalchemy.orm import Session # type: ignore
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead

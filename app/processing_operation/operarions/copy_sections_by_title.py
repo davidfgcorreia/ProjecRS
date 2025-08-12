@@ -7,6 +7,7 @@ Copy sections from markdown files to new markdown files, in the order specified 
 """
 import re
 from pathlib import Path
+from rapidfuzz import fuzz # type: ignore
 
 def read_titles(titles_path):
     with open(titles_path, 'r', encoding='utf-8') as f:
@@ -17,7 +18,6 @@ def read_markdown(md_path):
         return f.readlines()
 
 def find_sections(lines, titles, all_titles_set, pdf_titles=None):
-    from rapidfuzz import fuzz
     # If pdf_titles is provided, use it as delimiters
     if pdf_titles is not None:
         title_indices = []
@@ -54,7 +54,6 @@ def find_sections(lines, titles, all_titles_set, pdf_titles=None):
     all_lines_in_file = [(line.strip(), idx) for idx, line in enumerate(lines)]
 
     # Fuzzy match all titles, allow matches to any line
-    from rapidfuzz import fuzz
     matches = []
     for title in titles:
         best_score = 0
@@ -141,28 +140,18 @@ def write_sections(lines, sections, output_path, all_titles_set):
                 f.write('\n')
 
 
-def process_all_files(titles_dir=None, markdown_dir=None, output_dir=None, all_titles_dir=None, pdf_titles_dir=None):
-    base_dir = Path(__file__).parent.parent
+def process_all_files(titles_dir=None, markdown_dir=None, output_dir=None, all_titles_dir=None):
+    # All input/output directories must be provided as arguments (no hardcoded defaults)
+    if titles_dir is None or markdown_dir is None or output_dir is None or all_titles_dir is None:
+        raise ValueError("All directory arguments must be provided explicitly. No hardcoded defaults allowed.")
+
     # Ensure all input/output directories are Path objects
-    if titles_dir is None:
-        titles_dir = base_dir / "storage" / "parsed_titles"
-    else:
-        titles_dir = Path(titles_dir)
-    if markdown_dir is None:
-        markdown_dir = base_dir / "storage" / "markdown"
-    else:
-        markdown_dir = Path(markdown_dir)
-    if output_dir is None:
-        output_dir = base_dir / "storage" / "coyed_section_by_file"
-    else:
-        output_dir = Path(output_dir)
+    titles_dir = Path(titles_dir)
+    markdown_dir = Path(markdown_dir)
+    output_dir = Path(output_dir)
+    all_titles_dir = Path(all_titles_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # New: get all_titles_dir from input or default
-    if all_titles_dir is None:
-        all_titles_dir = titles_dir
-    else:
-        all_titles_dir = Path(all_titles_dir)
     # Build all_titles_set from all_titles_dir
     all_titles_set = set()
     for tfile in all_titles_dir.glob("*.txt"):
@@ -172,15 +161,11 @@ def process_all_files(titles_dir=None, markdown_dir=None, output_dir=None, all_t
                 if t:
                     all_titles_set.add(t)
 
-    if pdf_titles_dir is None:
-        pdf_titles_dir = base_dir / "main_storage" / "exemple2" / "pdfs_titles"
-    else:
-        pdf_titles_dir = Path(pdf_titles_dir)
     found_files = list(titles_dir.glob("*.txt"))
     for titles_path in found_files:
         basename = titles_path.stem  # e.g. "Bissonnette 2016"
         md_path = markdown_dir / basename / f"{basename}.md"
-        pdf_titles_path = pdf_titles_dir / f"{basename}_titles.txt"
+        pdf_titles_path = all_titles_dir / f"{basename}_titles.txt"
         if not md_path.exists() or not pdf_titles_path.exists():
             continue
         output_path = output_dir / f"{basename}_selected_sections.md"
@@ -194,7 +179,7 @@ def process_all_files(titles_dir=None, markdown_dir=None, output_dir=None, all_t
         write_sections(lines, filtered_sections, output_path, all_titles_set)
 
 def main():
-    process_all_files()
+    raise NotImplementedError("You must call process_all_files with explicit directory arguments. No hardcoded defaults.")
 
 if __name__ == "__main__":
     main()

@@ -3,24 +3,17 @@ Step 3: Run LLM prompt (ChatGPT-4.1) on all markdown table files in the 'tables'
 Outputs results to 'output_file_promt_ai/ouput_indexs.txt'.
 """
 import os
-import openai
-import tiktoken
+import openai # type: ignore
+import tiktoken # type: ignore
 import time
 
-TABLES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'main_storage', 'exemple2', 'tables'))
-OUTPUT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'main_storage', 'exemple2', 'output_debug_file_promt_ai'))
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, 'ouput_indexs.txt')
 
-# Ensure output directory exists
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-INDEXES_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'main_storage', 'exemple2', 'table_indexs', 'indexes.txt'))
 
 def read_file(path):
     with open(path, 'r') as f:
         return f.read()
 
-def get_table_files(tables_dir=TABLES_DIR):
+def get_table_files(tables_dir):
     return [os.path.join(tables_dir, f) for f in os.listdir(tables_dir) if f.endswith('.md')]
 
 def count_tokens(text, model="gpt-4.1-2025-04-14"):
@@ -28,7 +21,7 @@ def count_tokens(text, model="gpt-4.1-2025-04-14"):
     enc = tiktoken.get_encoding("cl100k_base")
     return len(enc.encode(text))
 
-def run_chatgpt41(tables_dir=TABLES_DIR, indexes_path=INDEXES_PATH, output_dir=OUTPUT_DIR, output_file=OUTPUT_FILE):
+def run_chatgpt41(tables_dir, indexes_path, output_dir, output_file):
     client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     if not client.api_key:
         raise RuntimeError('OPENAI_API_KEY not set in environment.')
@@ -75,7 +68,7 @@ def run_chatgpt41(tables_dir=TABLES_DIR, indexes_path=INDEXES_PATH, output_dir=O
     # Send requests and append output
     with open(output_file, 'w') as out:
         for i, batch in enumerate(batches):
-            if i> 0:
+            if i > 0:
                 time.sleep(30)  # Wait to avoid rate limits
             print(f"Sending batch {i+1}/{len(batches)} to GPT-4.1...")
             response = client.responses.create(
@@ -92,10 +85,10 @@ def run_chatgpt41(tables_dir=TABLES_DIR, indexes_path=INDEXES_PATH, output_dir=O
                 ]
             )
             out.write(response.output_text if isinstance(response.output_text, str) else str(response.output_text))
-            out.write("\n\n")  
+            out.write("\n\n")
     print(f"Result written to {output_file}")
 
-def main(tables_dir=TABLES_DIR, indexes_path=INDEXES_PATH, output_dir=OUTPUT_DIR, output_file=OUTPUT_FILE):
+def main(tables_dir, indexes_path, output_dir, output_file):
     print("Sending prompt to gpt-4.1-2025-04-14...")
     run_chatgpt41(
         tables_dir=tables_dir,
@@ -105,4 +98,10 @@ def main(tables_dir=TABLES_DIR, indexes_path=INDEXES_PATH, output_dir=OUTPUT_DIR
     )
 
 if __name__ == "__main__":
-    main()
+    # Example usage: update these paths as needed for standalone runs
+    main(
+        tables_dir="./tables",
+        indexes_path="./table_indexes/indexes.txt",
+        output_dir="./output_debug_file_promt_ai",
+        output_file="./output_debug_file_promt_ai/ouput_indexs.txt"
+    )

@@ -15,8 +15,9 @@ venv/
 venv-cuda12/
 
 # FastAPI/SQLAlchemy storage
+app/storage/
 app/storage/pdfs/
-app/storage/temp/
+app/storage/temporary/
 app/storage/results/
 app/storage/reports/
 app/__pycache__/

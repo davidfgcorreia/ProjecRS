@@ -1,8 +1,7 @@
 import os
 import shutil
 import re
-
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # type: ignore
 from app.models.table_data import TableData
 from app.schemas.table_data import TableDataCreate
 from app.processing_operation.clinical_pdf_pipeline import pipeline
@@ -72,7 +71,7 @@ def modular_processing_and_store(data: TableDataCreate, db: Session):
                 f.write(f"{idx}\n")
     # Prossess columns_content and fill
 
-    pipeline(generatemd=True,root_storage=temp_dir)  # Call the pipeline with the temp directory
+    pipeline(generatemd=False, root_storage=temp_dir, debug=True, user_id=data.userid)  # Pass user_id to the pipeline
 
     if not data.columns_content:
         filled_content = [[f"cell_{i}_{j}" for j in range(len(data.row_ids))] for i in range(data.num_rows)]

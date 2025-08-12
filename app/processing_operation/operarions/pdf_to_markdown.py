@@ -25,6 +25,8 @@ def run_marker_on_pdf(pdf_path, output_dir, gimimy_api_key=None):
     if gimimy_api_key:
         config["gemini_api_key"] = gimimy_api_key
     # Write config to a temporary file
+
+    print("started file conversion")
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
         json.dump(config, tmp)
         tmp.flush()
@@ -43,14 +45,16 @@ def run_marker_on_pdf(pdf_path, output_dir, gimimy_api_key=None):
     finally:
         os.unlink(config_path)
 
-def batch_convert_pdfs(pdf_dir, output_dir, gimimy_api_key=None):
+def batch_convert_pdfs(pdf_dir, output_dir, pdf_list=None, gimimy_api_key=None):
     """
-    Converts all PDFs in pdf_dir to markdown using marker_single.
+    Converts only the specified PDFs in pdf_list (list of filenames) in pdf_dir to markdown using marker_single.
+    If pdf_list is None, processes all PDFs in the directory.
     """
-    for fname in os.listdir(pdf_dir):
-        if fname.lower().endswith('.pdf'):
-            run_marker_on_pdf(os.path.join(pdf_dir, fname), output_dir, gimimy_api_key)
-            time.sleep(15)  # Avoid rate limiting issues
+    if pdf_list is None:
+        pdf_list = [fname for fname in os.listdir(pdf_dir) if fname.lower().endswith('.pdf')]
+    for fname in pdf_list:
+        run_marker_on_pdf(os.path.join(pdf_dir, fname), output_dir, gimimy_api_key)
+        time.sleep(15)  # Avoid rate limiting issues
 
 def main():
     import argparse

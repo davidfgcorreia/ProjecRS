@@ -13,9 +13,12 @@ services:
   backend:
     build: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    mem_limit: 10g
     volumes:
       - ./app:/app/app
       - ./app/storage:/app/app/storage
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
     ports:
