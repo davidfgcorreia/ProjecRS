@@ -148,6 +148,9 @@ async function goToResult() {
       row_ids: Array.from(rowIds.value)
     }
     const response = await sendTableData(payload)
+    // Debug: log the API response
+    // eslint-disable-next-line no-console
+    console.log('DEBUG sendTableData response:', response)
     if (response && response.query_id) {
       globalStore.setQueryId(response.query_id)
     }

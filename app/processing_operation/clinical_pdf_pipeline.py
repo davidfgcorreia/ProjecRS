@@ -1,3 +1,5 @@
+import re
+import json
 """
 Pipeline for processing clinical trial PDFs with manual/automatic markdown generation.
 Steps:
@@ -25,7 +27,8 @@ from app.processing_operation.operarions.merge_output_indexes import main as mer
 from app.processing_operation.operarions.localizations import process_and_save_all
 from app.processing_operation.operarions.preprocess_vlaues import preprocess_directory
 from app.processing_operation.operarions.generate_markdown_table_clean import main as generate_markdown_table_main
-from app.processing_operation.operarions.process_tables import main as process_tables_main
+from app.processing_operation.operarions.md_table_to_js import parse_md_table
+
 
 import shutil
 import time
@@ -51,7 +54,6 @@ def copy_query_to_markdowns(temp_query_dir, markdowns_root, user_id, paper_title
     print(f"Copied all contents from {temp_query_dir} to {dest_dir}")
 
 def pipeline(generatemd=False, root_storage=None , debug=False, user_id=None):
-
 
     if root_storage is None:
         raise ValueError("root_storage must not be None")
@@ -269,11 +271,28 @@ def pipeline(generatemd=False, root_storage=None , debug=False, user_id=None):
     preprocess_directory(preproc_input_dir, preproc_output_dir)
     print(f"Preprocessed tables written to: {preproc_output_dir}")
 
-    
+    # Step 15: Generate merged markdown tables
+    print("[STEP 15] Generating merged markdown tables...")
+    final_values_for_tables_dir = preproc_output_dir
+    final_values_for_table_dir = os.path.join(root_storage, 'final_values_for_table')
+    os.makedirs(final_values_for_table_dir, exist_ok=True)
+    generate_markdown_table_main(final_values_for_tables_dir, final_values_for_table_dir)
+    print(f"Merged markdown tables written to: {final_values_for_table_dir}")
 
-
-
-
+    # Parse the merged markdown table and return real headers/items
+    merged_md_path = os.path.join(final_values_for_table_dir, 'all_tables_merged.md')
+    if os.path.exists(merged_md_path):
+        headers, items = parse_md_table(merged_md_path)
+        print("[PIPELINE OUTPUT] headers:")
+        print(json.dumps(headers, indent=2))
+        print("[PIPELINE OUTPUT] items:")
+        print(json.dumps(items, indent=2))
+        return {'headers': headers, 'items': items}
+    else:
+        print(f"[WARNING] Merged markdown table not found at {merged_md_path}")
+        return None
 
 if __name__ == '__main__':
-    pipeline()
+    result = pipeline()
+    if result:
+        print(json.dumps(result, indent=2))

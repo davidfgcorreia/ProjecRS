@@ -1,13 +1,15 @@
-from fastapi import FastAPI
-from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI # type:ignore
+from dotenv import load_dotenv # type:ignore
+from fastapi.middleware.cors import CORSMiddleware # type:ignore
 from app.api import user
 from app.api import upload
 from app.api import result
 from app.api import table_data
+from app.api import localization
+from app.api import highlight_header
 from app.db.database import Base, engine, init_admin_user
 import time
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError # type: ignore
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -43,3 +45,5 @@ app.include_router(user.router)
 app.include_router(upload.router)
 app.include_router(result.router)
 app.include_router(table_data.router)
+app.include_router(localization.router)
+app.include_router(highlight_header.router)

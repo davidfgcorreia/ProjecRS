@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text # type: ignore
+from sqlalchemy.orm import relationship # type: ignore
 from datetime import datetime, timezone
 from app.db.database import Base
 
@@ -12,3 +12,5 @@ class Query(Base):
 
     user = relationship("User", back_populates="queries")
     query_files = relationship("QueryFile", back_populates="query")
+
+

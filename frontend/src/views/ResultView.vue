@@ -50,11 +50,13 @@
               item-key="col0"
               dense
               hide-default-footer
+              @click:row="onRowClick"
+              @contextmenu:row="onRowContextMenu"
             >
               <template v-for="header in headers" #[`header.${header.value}`]="slotProps">
                 <span
-                  class="clickable-cell"
-                  style="user-select: text; font-weight: bold; cursor: pointer;"
+                  class="clickable-cell table-header-center"
+                  style="user-select: text; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center;"
                   @click="headerEditKey === header.value ? null : setHeaderEdit(header.value)"
                 >
                   <template v-if="headerEditKey === header.value">
@@ -65,41 +67,77 @@
                       class="cell-edit-textarea"
                       :placeholder="'Edit header...'"
                       autofocus
-                      style="width: 18ch; min-width: 12ch; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; box-sizing: border-box;"
+                      style="width: 18ch; min-width: 12ch; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; box-sizing: border-box; text-align: center;"
                     />
                   </template>
                   <template v-else>
-                    {{ header.title }}
+                    <span style="width: 100%; text-align: center;">{{ header.title }}</span>
                   </template>
                 </span>
               </template>
-<template #item="{ item, headers }">
-  <tr>
-    <td v-for="header in headers" :key="header.value">
-      <span
-        class="clickable-cell"
-        style="user-select: text;"
-        @mousedown="selectCell(item, header.value, $event)"
-      >
-        <template v-if="isEditingCell(item, header.value)">
-          <textarea
-            v-model="editValue"
-            @blur="onCellEditBlur(item, header.value)"
-            @keydown.enter="saveEdit(item, header.value)"
-            class="cell-edit-textarea"
-            :placeholder="'Edit value...'"
-            autofocus
-            style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden;"
-          />
-        </template>
-        <template v-else>
-          {{ (item[header.value] !== undefined && item[header.value] !== null && String(item[header.value]).trim() !== '') ? String(item[header.value]) : '-' }}
-        </template>
-      </span>
-    </td>
-  </tr>
-</template>
+              <template #item.col0="{ item }">
+                <span
+                  :class="item.__meta__ && item.__meta__.col0 ? 'clickable-cell table-cell-center' : 'table-cell-center'"
+                  :title="item.__meta__ && item.__meta__.col0 ? 'Request PDF for this value' : ''"
+                  @click="isEditingCell(item, 'col0') ? null : openCellMenu($event, item, 'col0')"
+                  @mousedown="selectCell(item, 'col0', $event)"
+                  style="user-select: text; display: flex; justify-content: center; align-items: center;"
+                >
+                  <template v-if="isEditingCell(item, 'col0')">
+                    <textarea
+                      v-model="editValue"
+                      @blur="saveEdit(item, 'col0')"
+                      @keydown.enter="saveEdit(item, 'col0')"
+                      class="cell-edit-textarea"
+                      :placeholder="'Edit value...'"
+                      autofocus
+                      style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
+                    />
+                  </template>
+                  <template v-else>
+                    <span style="width: 100%; text-align: center;">{{ (item.col0 !== undefined && item.col0 !== null && String(item.col0).trim() !== '') ? String(item.col0) : '-' }}</span>
+                  </template>
+                </span>
+              </template>
+              <template v-for="header in headers" #[`item.${header.value}`]="{ item }">
+                <span
+                  class="clickable-cell table-cell-center"
+                  style="user-select: text; display: flex; justify-content: center; align-items: center;"
+                  @click="isEditingCell(item, header.value) ? null : openCellMenu($event, item, header.value)"
+                  @mousedown="selectCell(item, header.value, $event)"
+                >
+                  <template v-if="isEditingCell(item, header.value)">
+                    <textarea
+                      v-model="editValue"
+                      @blur="saveEdit(item, header.value)"
+                      @keydown.enter="saveEdit(item, header.value)"
+                      class="cell-edit-textarea"
+                      :placeholder="'Edit value...'"
+                      autofocus
+                      style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
+                    />
+                  </template>
+                  <template v-else>
+                    <span style="width: 100%; text-align: center;">{{ (item[header.value] !== undefined && item[header.value] !== null && String(item[header.value]).trim() !== '') ? String(item[header.value]) : '-' }}</span>
+                  </template>
+                </span>
+              </template>
             </v-data-table>
+            <!-- Independent context menu overlay for real table -->
+            <div
+              v-if="cellMenu.visible"
+              class="cell-menu cell-menu-absolute"
+              :style="{ left: cellMenu.x + 'px', top: cellMenu.y + 'px' }"
+            >
+              <template v-if="cellMenu.item && cellMenu.item.__meta__ && cellMenu.item.__meta__[cellMenu.col]">
+                <div class="cell-menu-option" @click.stop="localizeOrigin(cellMenu.item.__meta__[cellMenu.col], cellMenu.item)">Localize Origin</div>
+                <div class="cell-menu-option" @click.stop="editCell(cellMenu.item, cellMenu.col)">Edit</div>
+              </template>
+              <template v-else>
+                <div class="cell-menu-option" @click.stop="findValue(cellMenu.item, cellMenu.col)">Find Value</div>
+                <div class="cell-menu-option" @click.stop="editCell(cellMenu.item, cellMenu.col)">Edit</div>
+              </template>
+            </div>
             <button @click="goToPreview" class="submit-btn" style="margin-top:1.5em;">Go to Preview</button>
           </div>
         </div>
@@ -109,7 +147,7 @@
             <div v-if="errorMsg" class="error-msg" style="margin-bottom:1em;">{{ errorMsg }}<br/>Showing mock table for development.</div>
     <v-data-table
       :headers="mockHeaders"
-      :items="mockItemsDisplay"
+        :items="mockItemsDisplay"
       class="elevation-1"
       item-key="col0"
       dense
@@ -117,8 +155,8 @@
     >
       <template v-for="header in mockHeaders" #[`header.${header.value}`]="slotProps">
         <span
-          class="clickable-cell"
-          style="user-select: text; font-weight: bold; cursor: pointer;"
+          class="clickable-cell table-header-center"
+          style="user-select: text; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center;"
           @click="headerEditKey === header.value ? null : setHeaderEdit(header.value)"
         >
           <template v-if="headerEditKey === header.value">
@@ -129,20 +167,20 @@
               class="cell-edit-textarea"
               :placeholder="'Edit header...'"
               autofocus
-              style="width: 18ch; min-width: 12ch; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; box-sizing: border-box;"
+              style="width: 18ch; min-width: 12ch; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; box-sizing: border-box; text-align: center;"
             />
           </template>
           <template v-else>
-            {{ header.title }}
+            <span style="width: 100%; text-align: center;">{{ header.title }}</span>
           </template>
         </span>
       </template>
       <template #item."col0"="{ item }">
         <span
-          :class="item.__meta__ && item.__meta__.col0 ? 'clickable-cell' : ''"
+          :class="item.__meta__ && item.__meta__.col0 ? 'clickable-cell table-cell-center' : 'table-cell-center'"
           :title="item.__meta__ && item.__meta__.col0 ? 'Request PDF for this value' : ''"
           @click="isEditingCell(item, 'col0') ? null : openCellMenu($event, item, 'col0')"
-          style="user-select: text;"
+          style="user-select: text; display: flex; justify-content: center; align-items: center;"
         >
           <template v-if="isEditingCell(item, 'col0')">
             <textarea
@@ -152,18 +190,18 @@
               class="cell-edit-textarea"
               :placeholder="'Edit value...'"
               autofocus
-              style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden;"
+              style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
             />
           </template>
           <template v-else>
-            {{ (item.col0 !== undefined && item.col0 !== null && String(item.col0).trim() !== '') ? String(item.col0) : '-' }}
+            <span style="width: 100%; text-align: center;">{{ (item.col0 !== undefined && item.col0 !== null && String(item.col0).trim() !== '') ? String(item.col0) : '-' }}</span>
           </template>
         </span>
       </template>
       <template v-for="header in mockHeaders" #[`item.${header.value}`]="{ item }">
         <span
-          class="clickable-cell"
-          style="user-select: text;"
+          class="clickable-cell table-cell-center"
+          style="user-select: text; display: flex; justify-content: center; align-items: center;"
           @click="isEditingCell(item, header.value) ? null : openCellMenu($event, item, header.value)"
         >
           <template v-if="isEditingCell(item, header.value)">
@@ -174,11 +212,11 @@
               class="cell-edit-textarea"
               :placeholder="'Edit value...'"
               autofocus
-              style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden;"
+              style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
             />
           </template>
           <template v-else>
-            {{ (item[header.value] !== undefined && item[header.value] !== null && String(item[header.value]).trim() !== '') ? String(item[header.value]) : '-' }}
+            <span style="width: 100%; text-align: center;">{{ (item[header.value] !== undefined && item[header.value] !== null && String(item[header.value]).trim() !== '') ? String(item[header.value]) : '-' }}</span>
           </template>
         </span>
       </template>
@@ -225,10 +263,29 @@
 </template>
 
 <script setup>
+// Cell selection handler for table cells
+function selectCell(item, col, event) {
+  // You can implement custom cell selection logic here
+  // For now, just log the selection for debug
+  // eslint-disable-next-line no-console
+  console.log('Cell selected:', { item, col, event })
+}
+// Row event handlers for table
+function onRowClick(row) {
+  // Row click handler (stub)
+  // You can implement custom logic here if needed
+}
+
+function onRowContextMenu(row, event) {
+  // Row context menu handler (stub)
+  // You can implement custom logic here if needed
+  event.preventDefault();
+}
 import { ref, onMounted, computed,onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getTableData } from '@/api/tableDataService'
-import { requestPdf } from '@/api/pdfService'
+import { getHighlightedPdfSection } from '@/api/localizationService'
+import { getHighlightedHeaderPdf } from '@/api/highlightHeaderService'
 import { useGlobalStore } from '@/stores/global'
 
 const route = useRoute()
@@ -271,6 +328,21 @@ const mockItems = [
     col10: { display: '300 mg, q2w', meta: 'loc_130' },
     col11: { display: '242', meta: 'loc_132' },
     col12: { display: '16', meta: 'loc_134' }
+  },
+  {
+    col0: { display: 'Smith 2022', meta: null },
+    col1: { display: '2022', meta: 'loc_215' },
+    col2: { display: 'NCT04567890', meta: 'loc_216' },
+    col3: { display: 'II', meta: 'loc_217' },
+    col4: { display: 'United States', meta: 'loc_218' },
+    col5: { display: 'Topical steroids, oral antihistamines', meta: 'loc_219' },
+    col6: { display: 'Baricitinib', meta: 'loc_221' },
+    col7: { display: '2 mg, q.d', meta: 'loc_223' },
+    col8: { display: '150', meta: 'loc_227' },
+    col9: { display: 'Placebo', meta: 'loc_228' },
+    col10: { display: '0 mg', meta: 'loc_230' },
+    col11: { display: '148', meta: 'loc_232' },
+    col12: { display: '12', meta: 'loc_234' }
   }
 ]
 
@@ -394,19 +466,62 @@ function closeCellMenu() {
 }
 
 function localizeOrigin(meta, row) {
-  // For development, show overlay with mock PDF and cell value
-  pdfOverlaySrc.value = '/public/development/mock.pdf'
-  let cellValue = ''
-  if (cellMenu.value && cellMenu.value.item && cellMenu.value.col) {
-    cellValue = cellMenu.value.item[cellMenu.value.col]
+  // Get queryId and userId
+  // Try to get queryId from route.params.query_id or route.params.count
+  let queryId = route.params.query_id || route.params.count
+  // Try to get userId from globalStore, fallback to localStorage if needed
+  let userId = globalStore && globalStore.user ? globalStore.user.id : null
+  if (!userId && window.localStorage) {
+    const userObj = window.localStorage.getItem('user')
+    if (userObj) {
+      try {
+        userId = JSON.parse(userObj).id
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to parse user from localStorage:', e)
+      }
+    }
   }
-  pdfOverlayValue.value = cellValue
-  pdfOverlayOriginalValue.value = cellValue
-  // Store reference to the item and col for saving
+  // Fallback to userId=2 if still not present
+  if (!userId) {
+    userId = 2
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] No user found, falling back to userId=2')
+  }
+  const marker = meta
+  // Debug log for parameters
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] localizeOrigin params:', { queryId, userId, marker, routeParams: route.params, globalStoreUser: globalStore && globalStore.user })
+  if (!queryId || !userId || !marker) {
+    // eslint-disable-next-line no-console
+    console.error('[DEBUG] Missing queryId, userId, or marker for localization API call', { queryId, userId, marker })
+    return
+  }
+  // Show loading overlay while fetching PDF
+  showPdfOverlay.value = true
+  pdfOverlayValue.value = cellMenu.value.item[cellMenu.value.col]
+  pdfOverlayOriginalValue.value = pdfOverlayValue.value
   pdfOverlayItem.value = cellMenu.value.item
   pdfOverlayCol.value = cellMenu.value.col
-  showPdfOverlay.value = true
+  pdfOverlaySrc.value = ''
   closeCellMenu()
+  // Call backend API to get highlighted PDF
+  getHighlightedPdfSection(queryId, userId, marker)
+    .then(blob => {
+      // Debug log for API response
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG] getHighlightedPdfSection response:', blob)
+      // Create a blob URL for the PDF
+      const pdfUrl = URL.createObjectURL(blob)
+      pdfOverlaySrc.value = pdfUrl
+    })
+    .catch(err => {
+      // eslint-disable-next-line no-console
+      console.error('[DEBUG] Failed to fetch highlighted PDF:', err)
+      pdfOverlaySrc.value = ''
+      showPdfOverlay.value = false
+      // Optionally show error message to user
+    })
 }
 // Store reference to the item and col for saving overlay edits
 const pdfOverlayItem = ref(null)
@@ -427,18 +542,89 @@ function savePdfOverlayValue() {
   }
 }
 function findValue(row, col) {
-  // TODO: Replace with API request for PDF localization
-  pdfOverlaySrc.value = '/public/development/mock.pdf'
-  let cellValue = ''
-  if (row && col) {
-    cellValue = row[col]
+  // Get queryId from route
+  let queryId = route.params.query_id || route.params.count
+  // Get header name from headers (for real table) or mockHeaders
+  let headerName = ''
+  if (headers.value && Array.isArray(headers.value)) {
+    const headerObj = headers.value.find(h => h.value === col)
+    headerName = headerObj ? headerObj.title : col
+  } else {
+    const headerObj = mockHeaders.find(h => h.value === col)
+    headerName = headerObj ? headerObj.title : col
   }
-  pdfOverlayValue.value = cellValue
-  pdfOverlayOriginalValue.value = cellValue
+  // Collect all first column values
+  let itemsArr = items.value && Array.isArray(items.value) ? items.value : mockItemsDisplay.value
+  let col0Values = itemsArr.map((r, idx) => {
+    let val = r && r.col0
+    // Debug log for each value being copied
+    if (val && typeof val === 'object' && 'display' in val) {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] col0Values[${idx}] (object.display):`, val.display)
+      return val.display
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[DEBUG] col0Values[${idx}] (raw):`, val)
+    return val
+  })
+  // Find the first non-empty value in col0, starting from selected row and going up
+  // Debug log for itemsArr and row
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] itemsArr:', itemsArr)
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] row:', row)
+  let startIdx = itemsArr.findIndex(r => r === row) + 1
+  // eslint-disable-next-line no-console
+  console.log(`[DEBUG] startIdx for selected row:`, startIdx)
+  let pdfName = ''
+  if (startIdx === -1) {
+    // eslint-disable-next-line no-console
+    console.warn('[DEBUG] startIdx is -1, row not found in itemsArr. Skipping PDF name search.')
+  } else {
+    for (let i = startIdx; i >= 0; i--) {
+      let val = col0Values[i]
+      // Debug log for each value being looked at
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] Looking at col0Values[${i}]:`, val)
+      if (val !== undefined && val !== null && String(val).trim() !== '') {
+        pdfName = String(val).trim()
+        // eslint-disable-next-line no-console
+        console.log(`[DEBUG] Selected pdfName from col0Values[${i}]:`, pdfName)
+        break
+      }
+    }
+  }
+  // eslint-disable-next-line no-console
+  console.log(`[DEBUG] Final pdfName after search:`, pdfName)
+  // Debug log for parameters
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] findValue params:', { queryId, headerName, col, row, pdfName })
+  if (!queryId || !headerName || !pdfName) {
+    // eslint-disable-next-line no-console
+    console.error('[DEBUG] Missing queryId, headerName, or pdfName for highlight header API call', { queryId, headerName, pdfName })
+    return
+  }
+  showPdfOverlay.value = true
+  pdfOverlayValue.value = row[col]
+  pdfOverlayOriginalValue.value = row[col]
   pdfOverlayItem.value = row
   pdfOverlayCol.value = col
-  showPdfOverlay.value = true
+  pdfOverlaySrc.value = ''
   closeCellMenu()
+  // Call backend API to get highlighted header PDF
+  getHighlightedHeaderPdf(queryId, headerName, pdfName)
+    .then(blob => {
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG] getHighlightedHeaderPdf response:', blob)
+      const pdfUrl = URL.createObjectURL(blob)
+      pdfOverlaySrc.value = pdfUrl
+    })
+    .catch(err => {
+      // eslint-disable-next-line no-console
+      console.error('[DEBUG] Failed to fetch highlighted header PDF:', err)
+      pdfOverlaySrc.value = ''
+      showPdfOverlay.value = false
+    })
 }
 function editCell(item, col) {
   // Start editing the cell using a unique key
@@ -485,8 +671,17 @@ onMounted(async () => {
     try {
       loading.value = true
       table.value = await getTableData(queryId)
+      // Debug: log the API response
+      // eslint-disable-next-line no-console
+      console.log('DEBUG API table response:', table.value)
+      if (table.value && table.value.columns_content) {
+        // eslint-disable-next-line no-console
+        console.log('DEBUG API columns_content:', table.value.columns_content)
+      }
     } catch (e) {
       errorMsg.value = 'Failed to load table data.'
+      // eslint-disable-next-line no-console
+      console.error('DEBUG API error:', e)
     } finally {
       loading.value = false
     }
@@ -497,31 +692,58 @@ onMounted(async () => {
 })
 
 const headers = computed(() => {
+  let result = []
   if (table.value) {
+    let headerValues = []
     if (table.value.column_titles && Array.isArray(table.value.column_titles)) {
-      return table.value.column_titles.map((title, idx) => ({
-        value: `col${idx}`,
-        title: title
-      }))
+      headerValues = table.value.column_titles
     } else if (table.value.row_ids && Array.isArray(table.value.row_ids)) {
-      return table.value.row_ids.map((id, idx) => ({
-        value: `col${idx}`,
-        title: id
-      }))
+      headerValues = table.value.row_ids
+    }
+    if (Array.isArray(table.value.columns_content) && table.value.columns_content.length > 0) {
+      const firstRow = table.value.columns_content[0]
+      const allKeys = Object.keys(firstRow)
+      result = []
+      if (allKeys.length > 0) {
+        result.push({ value: allKeys[0], title: 'File' })
+          for (let idx = 1; idx < allKeys.length; idx++) {
+            // Shift headerValues by one: col1 gets headerValues[0], col2 gets headerValues[1], ...
+            result.push({ value: allKeys[idx], title: headerValues[idx - 1] || allKeys[idx] })
+          }
+      }
     }
   }
-  return []
+  // eslint-disable-next-line no-console
+  console.log('DEBUG computed headers:', result)
+  return result
 })
 
 const items = computed(() => {
   if (table.value && Array.isArray(table.value.columns_content)) {
-    return table.value.columns_content.map(rowArr => {
-      const rowObj = {}
-      rowArr.forEach((cell, idx) => {
-        rowObj[`col${idx}`] = cell
-      })
-      return rowObj
+    // Get all column keys from headers
+    const allKeys = headers.value.map(h => h.value)
+    const result = table.value.columns_content.map(rowObj => {
+      const displayRow = { __meta__: {} }
+      for (const key of allKeys) {
+        const cell = rowObj[key]
+        if (cell && typeof cell === 'object' && 'display' in cell) {
+          displayRow[key] = cell.display
+          displayRow.__meta__[key] = cell.meta
+        } else if (cell !== undefined && cell !== null) {
+          displayRow[key] = cell
+          displayRow.__meta__[key] = null
+        } else {
+          displayRow[key] = ''
+          displayRow.__meta__[key] = null
+        }
+      }
+      // eslint-disable-next-line no-console
+      console.log('DEBUG computed displayRow:', displayRow)
+      return displayRow
     })
+    // eslint-disable-next-line no-console
+    console.log('DEBUG computed items:', result)
+    return result
   }
   return []
 })
@@ -529,6 +751,17 @@ const items = computed(() => {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Along+Sans:wght@400;700&family=Muli:wght@400;700&display=swap');
+/* Center table header and cell values */
+.table-header-center {
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+.table-cell-center {
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+}
 
 .result-bg {
   min-height: 100vh;

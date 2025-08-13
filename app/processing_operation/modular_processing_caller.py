@@ -69,28 +69,38 @@ def modular_processing_and_store(data: TableDataCreate, db: Session):
         with open(indexes_path, 'w', encoding='utf-8') as f:
             for idx in data.row_ids:
                 f.write(f"{idx}\n")
-    # Prossess columns_content and fill
+    # Run the pipeline and get the real table data (headers/items)
+    pipeline_result = pipeline(generatemd=False, root_storage=temp_dir, debug=True, user_id=data.userid)
 
-    pipeline(generatemd=False, root_storage=temp_dir, debug=True, user_id=data.userid)  # Pass user_id to the pipeline
+    # Convert the pipeline result to columns_content for DB storage
+    # columns_content should always be a list of dicts (colX: {display, meta})
+    columns_content = []
+    if pipeline_result and 'items' in pipeline_result:
+        # Validate and coerce each row to dict of colX: {display, meta}
+        for row in pipeline_result['items']:
+            if isinstance(row, dict):
+                columns_content.append(row)
+            elif isinstance(row, list):
+                # Convert list to dict with empty meta
+                columns_content.append({f'col{i}': {'display': str(cell), 'meta': None} for i, cell in enumerate(row)})
+            else:
+                # Unexpected type, skip
+                continue
 
-    if not data.columns_content:
-        filled_content = [[f"cell_{i}_{j}" for j in range(len(data.row_ids))] for i in range(data.num_rows)]
-    else:
-        filled_content = data.columns_content
     # Create a new TableData instance or update existing one
     table = db.query(TableData).filter(TableData.query_id == data.query_id).first()
     if table:
         setattr(table, 'userid', data.userid)
         setattr(table, 'num_rows', data.num_rows)
         setattr(table, 'row_ids', data.row_ids)
-        setattr(table, 'columns_content', filled_content)
+        setattr(table, 'columns_content', columns_content)
     else:
         table = TableData(
             query_id=data.query_id,
             userid=data.userid,
             num_rows=data.num_rows,
             row_ids=data.row_ids,
-            columns_content=filled_content
+            columns_content=columns_content
         )
         db.add(table)
     db.commit()

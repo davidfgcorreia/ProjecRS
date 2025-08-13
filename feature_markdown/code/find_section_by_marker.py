@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Optional
 
 # Third-party imports
-import fitz  # PyMuPDF
-from fpdf import FPDF
-from rapidfuzz import fuzz
+import fitz  # PyMuPDF # type: ignore
+from fpdf import FPDF # type: ignore
+from rapidfuzz import fuzz # type: ignore
 
 def normalize(text):
     if not text:

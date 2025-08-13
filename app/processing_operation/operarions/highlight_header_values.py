@@ -2,8 +2,8 @@
 import os
 from pathlib import Path
 from typing import List, Optional
-import fitz  # PyMuPDF
-import openai
+import fitz  # PyMuPDF # type: ignore
+import openai #type: ignore
 
 # --- CONFIGURATION ---
 DEFAULT_HEADER = "Region"
