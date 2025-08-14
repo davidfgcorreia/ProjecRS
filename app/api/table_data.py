@@ -6,7 +6,8 @@ from app.db.database import get_db
 from app.models.table_data import TableData
 from app.schemas.table_data import TableDataRead, TableDataCreate, TableCell
 from app.processing_operation.modular_processing_caller import modular_processing_and_store
-from app.processing_operation.operations.merge_columns import merge_columns
+from app.processing_operation.operarions.merge_columns import merge_columns
+from app.processing_operation.operarions.merge_cells import merge_cells_in_column
 import asyncio
 import logging
 
@@ -122,6 +123,25 @@ def merge_table_columns(
     flag_modified(table, "columns_content")
     flag_modified(table, "row_ids")
     flag_modified(table, "num_rows")
+    db.commit()
+    db.refresh(table)
+    return table
+
+# Merge two cells in the same column
+@router.post("/merge-cell/", response_model=TableDataRead)
+def merge_cell(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    query_id = payload.get("query_id")
+    col_key = payload.get("col_key")
+    row_idx1 = payload.get("row_idx1")
+    row_idx2 = payload.get("row_idx2")
+    table = db.query(TableData).filter(TableData.query_id == query_id).first()
+    if not table:
+        raise HTTPException(status_code=404, detail="Table not found")
+    table = merge_cells_in_column(table, col_key, row_idx1, row_idx2)
+    flag_modified(table, "columns_content")
     db.commit()
     db.refresh(table)
     return table

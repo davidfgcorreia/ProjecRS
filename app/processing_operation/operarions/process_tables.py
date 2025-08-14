@@ -8,7 +8,8 @@ def extract_compounds(row: str) -> List[str]:
     Extracts compound acronyms from a markdown table row using regex.
     Returns a list of acronyms.
     """
-    return re.findall(r'\b[A-Z]{2,}(?:-\d{2,})?\b', row)
+    # Match acronyms like ASN002, ABC-12, etc.
+    return re.findall(r'\b[A-Z]{2,}(?:-?\d{2,})?\b', row)
 
 def extract_dosage(dosage: str) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -85,6 +86,9 @@ def fix_comparator(name: str) -> str:
     return name.strip()
 
 def process_markdown_table(md_path: str, out_path: str) -> None:
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger("process_tables")
     """
     Processes a markdown table file:
     - Extracts compound acronyms using regex
@@ -140,7 +144,12 @@ def process_markdown_table(md_path: str, out_path: str) -> None:
                 return i
         return None
 
+    logger.debug(f"Table header: {header}")
     idx_name = find_col_idx(header, r'name')
+    if idx_name is not None:
+        logger.debug(f"Found header index with 'name' pattern: idx_name={idx_name}, header value='{header[idx_name]}'")
+    else:
+        logger.debug("No header index with 'name' pattern found.")
     idx_dosage = find_col_idx(header, r'dosage')
     idx_comp = find_col_idx(header, r'comp')
     # Match columns named 'age', 'intervention-age', '-age', 'age-', etc. (case-insensitive, with hyphen before or after)
@@ -155,9 +164,7 @@ def process_markdown_table(md_path: str, out_path: str) -> None:
         ):
             idx_age = i
             break
-    if idx_name is None or idx_dosage is None or idx_comp is None:
-        raise ValueError('Required columns not found in table header.')
-    # Age column is optional, but if present, normalize it
+    # Age column is optional, all others are now optional too
     # Process rows
     new_rows = []
     def normalize_age(age_str: str) -> str:
@@ -209,25 +216,41 @@ def process_markdown_table(md_path: str, out_path: str) -> None:
             return f"{val} ({val}-{val})"
         return f"{s}"
 
-    for row in rows:
+    for row_idx, row in enumerate(rows):
         # intervention-name: expand only the first connected word (acronym)
-        compounds = extract_compounds(row[idx_name])
-        if compounds:
-            first_acronym = compounds[0]
-            full_name = get_full_name(first_acronym)
-            row[idx_name] = full_name
+        if idx_name is not None and idx_name < len(row):
+            logger.debug(f"Row {row_idx}: idx_name value: {row[idx_name]}")
+            # Separate @@...@@ metadata from the name cell
+            name_val = row[idx_name]
+            m = re.search(r'^(.*?)(\s*(@@[^@]+@@))\s*$', name_val)
+            if m:
+                name_val_clean = m.group(1).strip()
+                metadata = m.group(3)
+            else:
+                name_val_clean = name_val
+                metadata = ''
+            compounds = extract_compounds(name_val_clean)
+            logger.debug(f"Row {row_idx}: extracted compounds: {compounds}")
+            if compounds:
+                first_acronym = compounds[0]
+                logger.debug(f"Row {row_idx}: querying PubChem for acronym: {first_acronym}")
+                full_name = get_full_name(first_acronym)
+                logger.debug(f"Row {row_idx}: PubChem result: {full_name}")
+                # Replace the cell value with the new name, preserving any metadata
+                row[idx_name] = full_name + (f' {metadata}' if metadata else '')
         # intervention-dosage: clean dosage
-        percent, freq = extract_dosage(row[idx_dosage])
-        # Always preserve frequency notation if present, even if percent is missing
-        if percent or freq:
-            parts = []
-            if percent:
-                parts.append(percent)
-            if freq:
-                parts.append(freq)
-            row[idx_dosage] = ' '.join(parts)
-        else:
-            row[idx_dosage] = row[idx_dosage]
+        if idx_dosage is not None and idx_dosage < len(row):
+            percent, freq = extract_dosage(row[idx_dosage])
+            # Always preserve frequency notation if present, even if percent is missing
+            if percent or freq:
+                parts = []
+                if percent:
+                    parts.append(percent)
+                if freq:
+                    parts.append(freq)
+                row[idx_dosage] = ' '.join(parts)
+            else:
+                row[idx_dosage] = row[idx_dosage]
         # frequency column: normalize if present
         freq_col_idxs = [i for i, col in enumerate(header) if re.search(r'frequency', col, re.IGNORECASE)]
         for freq_idx in freq_col_idxs:
@@ -241,7 +264,8 @@ def process_markdown_table(md_path: str, out_path: str) -> None:
                 if norm_freq:
                     row[freq_idx] = norm_freq + (f' {loc_marker}' if loc_marker else '')
         # comparator-name: fix comparator
-        row[idx_comp] = fix_comparator(row[idx_comp])
+        if idx_comp is not None and idx_comp < len(row):
+            row[idx_comp] = fix_comparator(row[idx_comp])
         # age: normalize if present
         if idx_age is not None and idx_age < len(row):
             row[idx_age] = normalize_age(row[idx_age])

@@ -28,6 +28,7 @@ from app.processing_operation.operarions.localizations import process_and_save_a
 from app.processing_operation.operarions.preprocess_vlaues import preprocess_directory
 from app.processing_operation.operarions.generate_markdown_table_clean import main as generate_markdown_table_main
 from app.processing_operation.operarions.md_table_to_js import parse_md_table
+from app.processing_operation.operarions.process_tables import main as process_markdown
 
 
 import shutil
@@ -279,8 +280,15 @@ def pipeline(generatemd=False, root_storage=None , debug=False, user_id=None):
     generate_markdown_table_main(final_values_for_tables_dir, final_values_for_table_dir)
     print(f"Merged markdown tables written to: {final_values_for_table_dir}")
 
+    # Step 16 : Postprocess values
+    print ("[STEP 16] Postprocessing values...")
+    postprocess_directory = os.path.join(root_storage, 'postprocessed_values')
+    os.makedirs(postprocess_directory, exist_ok=True)
+    process_markdown(final_values_for_table_dir, postprocess_directory)
+    print(f"Postprocessed tables written to: {postprocess_directory}")
+
     # Parse the merged markdown table and return real headers/items
-    merged_md_path = os.path.join(final_values_for_table_dir, 'all_tables_merged.md')
+    merged_md_path = os.path.join(postprocess_directory, 'all_tables_processed.md')
     if os.path.exists(merged_md_path):
         headers, items = parse_md_table(merged_md_path)
         print("[PIPELINE OUTPUT] headers:")

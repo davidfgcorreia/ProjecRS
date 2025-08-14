@@ -114,11 +114,11 @@
                   </template>
                 </span>
               </template>
-              <template v-for="header in headers" #[`item.${header.value}`]="{ item }">
+              <template v-for="header in headers" #[`item.${header.value}`]="{ item, index }">
                 <span
-                  class="clickable-cell table-cell-center"
+                  :class="'clickable-cell table-cell-center'"
                   style="user-select: text; display: flex; justify-content: center; align-items: center;"
-                  @click="isEditingCell(item, header.value) ? null : openCellMenu($event, item, header.value)"
+                  @click="isEditingCell(item, header.value) ? null : openCellMenu($event, item, header.value, index)"
                   @mousedown="selectCell(item, header.value, $event)"
                 >
                   <template v-if="isEditingCell(item, header.value)">
@@ -144,14 +144,18 @@
               class="cell-menu cell-menu-absolute"
               :style="{ left: cellMenu.x + 'px', top: cellMenu.y + 'px' }"
             >
-              <template v-if="cellMenu.item && cellMenu.item.__meta__ && cellMenu.item.__meta__[cellMenu.col]">
+              <div v-if="cellMenu.item && cellMenu.item.__meta__ && cellMenu.item.__meta__[cellMenu.col]">
                 <div class="cell-menu-option" @click.stop="localizeOrigin(cellMenu.item.__meta__[cellMenu.col], cellMenu.item)">Localize Origin</div>
                 <div class="cell-menu-option" @click.stop="editCell(cellMenu.item, cellMenu.col)">Edit</div>
-              </template>
-              <template v-else>
+                <div v-if="canMergeAbove(cellMenu.rowIdx)" class="cell-menu-option" @click.stop="mergeCellAbove(cellMenu.rowIdx, cellMenu.col)">Merge cell above</div>
+                <div v-if="canMergeBelow(cellMenu.rowIdx)" class="cell-menu-option" @click.stop="mergeCellBelow(cellMenu.rowIdx, cellMenu.col)">Merge cell below</div>
+              </div>
+              <div v-else>
                 <div class="cell-menu-option" @click.stop="findValue(cellMenu.item, cellMenu.col)">Find Value</div>
                 <div class="cell-menu-option" @click.stop="editCell(cellMenu.item, cellMenu.col)">Edit</div>
-              </template>
+                <div v-if="canMergeAbove(cellMenu.rowIdx)" class="cell-menu-option" @click.stop="mergeCellAbove(cellMenu.rowIdx, cellMenu.col)">Merge cell above</div>
+                <div v-if="canMergeBelow(cellMenu.rowIdx)" class="cell-menu-option" @click.stop="mergeCellBelow(cellMenu.rowIdx, cellMenu.col)">Merge cell below</div>
+              </div>
             </div>
             <button @click="goToPreview" class="submit-btn" style="margin-top:1.5em;">Go to Preview</button>
           </div>
@@ -311,6 +315,7 @@ import { getTableData } from '@/api/tableDataService'
 import { getHighlightedPdfSection } from '@/api/localizationService'
 import { getHighlightedHeaderPdf } from '@/api/highlightHeaderService'
 import { mergeTableColumns } from '@/api/tableDataService'
+import { mergeCellApi } from '@/api/mergeCellService'
 import { useGlobalStore } from '@/stores/global'
 
 const route = useRoute()
@@ -417,6 +422,7 @@ const mockItemsDisplay = computed(() => {
 // Context menu state
 import { nextTick } from 'vue'
 const cellMenu = ref({ visible: false, x: 0, y: 0, item: null, col: null })
+// Cell editing state
 const editingCellKey = ref(null)
 const editValue = ref('')
 const headerEditKey = ref(null)
@@ -469,7 +475,7 @@ function getCellKey(item, col) {
   return (item.col0 || JSON.stringify(item)) + ':' + col
 }
 
-function openCellMenu(event, item, col) {
+function openCellMenu(event, item, col, index) {
   event.stopPropagation()
   // Use pageX/pageY for absolute positioning
   cellMenu.value = {
@@ -477,7 +483,8 @@ function openCellMenu(event, item, col) {
     x: event.clientX,
     y: event.clientY,
     item,
-    col
+    col,
+    rowIdx: index
   }
   nextTick(() => {
     document.addEventListener('click', closeCellMenu)
@@ -713,8 +720,7 @@ function adjustTextareaHeight() {
   }
 }
 
-// ...existing code...
-// ...existing code...
+
 const showMergeDialog = ref(false)
 const mergeCol1 = ref(null)
 const mergeCol2 = ref(null)
@@ -740,6 +746,71 @@ async function confirmMergeColumns() {
     closeMergeDialog()
   } catch (e) {
     mergeError.value = e.message || 'Failed to merge columns.'
+  }
+}
+
+// Helper functions for menu options
+function canMergeAbove(rowIdx) {
+  return rowIdx > 0;
+}
+function canMergeBelow(rowIdx) {
+  let itemsArr = items.value && Array.isArray(items.value) ? items.value : mockItemsDisplay.value;
+  return rowIdx < itemsArr.length - 1;
+}
+async function mergeCellAbove(rowIdx, col) {
+  if (!canMergeAbove(rowIdx)) return;
+  let itemsArr = items.value && Array.isArray(items.value) ? items.value : mockItemsDisplay.value;
+  let queryId = route.params.query_id || route.params.count;
+  try {
+    const result = await mergeCellApi({
+      query_id: queryId,
+      col_key: col,
+      row_idx1: rowIdx,
+      row_idx2: rowIdx - 1
+    });
+    if (result && result.columns_content) {
+      table.value = result;
+    }
+    // For mock table, update locally
+    if (!table.value && itemsArr === mockItemsDisplay.value) {
+      const base = itemsArr[rowIdx];
+      const target = itemsArr[rowIdx - 1];
+      const mergedDisplay = (base[col] === target[col]) ? base[col] : `${base[col]} / ${target[col]}`;
+      base[col] = mergedDisplay;
+      target[col] = '';
+    }
+    closeCellMenu();
+  } catch (e) {
+    mergeError.value = e.message || 'Failed to merge cells.';
+    closeCellMenu();
+  }
+}
+async function mergeCellBelow(rowIdx, col) {
+  let itemsArr = items.value && Array.isArray(items.value) ? items.value : mockItemsDisplay.value;
+  if (!canMergeBelow(rowIdx)) return;
+  let queryId = route.params.query_id || route.params.count;
+  try {
+    const result = await mergeCellApi({
+      query_id: queryId,
+      col_key: col,
+      row_idx1: rowIdx,
+      row_idx2: rowIdx + 1
+    });
+    if (result && result.columns_content) {
+      table.value = result;
+    }
+    // For mock table, update locally
+    if (!table.value && itemsArr === mockItemsDisplay.value) {
+      const base = itemsArr[rowIdx];
+      const target = itemsArr[rowIdx + 1];
+      const mergedDisplay = (base[col] === target[col]) ? base[col] : `${base[col]} / ${target[col]}`;
+      base[col] = mergedDisplay;
+      target[col] = '';
+    }
+    closeCellMenu();
+  } catch (e) {
+    mergeError.value = e.message || 'Failed to merge cells.';
+    closeCellMenu();
   }
 }
 
@@ -769,8 +840,7 @@ onMounted(async () => {
     } finally {
       loading.value = false
     }
-  } else {
-    errorMsg.value = ''
+
     loading.value = false
   }
 })
