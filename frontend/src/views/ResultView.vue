@@ -53,10 +53,10 @@
               @click:row="onRowClick"
               @contextmenu:row="onRowContextMenu"
             >
-              <template v-for="header in headers" #[`header.${header.value}`]="slotProps">
+              <template v-for="(header, idx) in headers" #[`header.${header.value}`]="slotProps">
                 <span
                   class="clickable-cell table-header-center"
-                  style="user-select: text; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center;"
+                  style="user-select: text; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; position: relative;"
                   @click="headerEditKey === header.value ? null : setHeaderEdit(header.value)"
                 >
                   <template v-if="headerEditKey === header.value">
@@ -72,6 +72,21 @@
                   </template>
                   <template v-else>
                     <span style="width: 100%; text-align: center;">{{ header.title }}</span>
+                  </template>
+                  <!-- Always-visible merge button between headers -->
+                  <template v-if="idx < headers.length - 1">
+                    <button
+                      class="merge-header-btn"
+                      title="Merge with next column"
+                      @click.stop="openMergeDialog(header.value, headers[idx+1].value)"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" style="display:block; margin:auto;" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="10.5" y="4" width="3" height="16" rx="1.5" fill="white" stroke="#2F3775" stroke-width="1.5"/>
+                        <path d="M4 12h6M20 12h-6" stroke="#2F3775" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M7 9l-3 3 3 3" stroke="#2F3775" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M17 15l3-3-3-3" stroke="#2F3775" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
                   </template>
                 </span>
               </template>
@@ -259,6 +274,15 @@
         </div>
       </div>
     </div>
+    <div v-if="showMergeDialog" class="merge-dialog-bg">
+      <div class="merge-dialog-card">
+        <h3>Merge Columns</h3>
+        <p>Are you sure you want to merge <b>{{ mergeCol1 }}</b> and <b>{{ mergeCol2 }}</b>?</p>
+        <div v-if="mergeError" class="error-msg">{{ mergeError }}</div>
+        <button @click="confirmMergeColumns" class="submit-btn">Merge</button>
+        <button @click="closeMergeDialog" class="submit-btn" style="background:#b0b0b0; color:#2F3775;">Cancel</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -286,6 +310,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getTableData } from '@/api/tableDataService'
 import { getHighlightedPdfSection } from '@/api/localizationService'
 import { getHighlightedHeaderPdf } from '@/api/highlightHeaderService'
+import { mergeTableColumns } from '@/api/tableDataService'
 import { useGlobalStore } from '@/stores/global'
 
 const route = useRoute()
@@ -641,11 +666,40 @@ function isEditingCell(item, col) {
 function saveEdit(item, col) {
   // Save the new value to the cell
   if (editValue.value !== undefined && editValue.value !== null) {
+    const oldValue = item[col]
     item[col] = editValue.value
-    // Placeholder for API call to update cell value
-    // TODO: implement real API call here
-    // eslint-disable-next-line no-console
-    console.log('API call to update cell', col, 'with value', editValue.value, 'in row', item)
+    // Send API request to backend if value changed
+    if (editValue.value !== oldValue) {
+      // Prepare cell identification
+      let queryId = route.params.query_id || route.params.count
+      // Always use row index for backend update
+      let rowIdx = items.value && Array.isArray(items.value) ? items.value.findIndex(r => r === item) : null
+      // Prepare payload
+      const payload = {
+        query_id: queryId,
+        row_id: rowIdx,
+        col: col,
+        new_value: editValue.value
+      }
+      // eslint-disable-next-line no-console
+      console.log('Sending cell update to backend:', payload)
+      import('@/api/tableDataService').then(module => {
+        if (module && module.updateTableCell) {
+          module.updateTableCell(payload)
+            .then(res => {
+              // eslint-disable-next-line no-console
+              console.log('Cell update response:', res)
+            })
+            .catch(err => {
+              // eslint-disable-next-line no-console
+              console.error('Cell update error:', err)
+            })
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn('updateTableCell API not found in tableDataService')
+        }
+      })
+    }
   }
   editingCellKey.value = null
 }
@@ -656,6 +710,36 @@ function adjustTextareaHeight() {
   if (textarea) {
     textarea.style.height = 'auto'
     textarea.style.height = textarea.scrollHeight + 'px'
+  }
+}
+
+// ...existing code...
+// ...existing code...
+const showMergeDialog = ref(false)
+const mergeCol1 = ref(null)
+const mergeCol2 = ref(null)
+const mergeError = ref('')
+function openMergeDialog(col1, col2) {
+  mergeCol1.value = col1
+  mergeCol2.value = col2
+  showMergeDialog.value = true
+  mergeError.value = ''
+}
+function closeMergeDialog() {
+  showMergeDialog.value = false
+  mergeCol1.value = null
+  mergeCol2.value = null
+  mergeError.value = ''
+}
+async function confirmMergeColumns() {
+  if (!mergeCol1.value || !mergeCol2.value) return
+  const queryId = route.params.query_id || route.params.count
+  try {
+    const updatedTable = await mergeTableColumns({ query_id: queryId, col1: mergeCol1.value, col2: mergeCol2.value })
+    table.value = updatedTable
+    closeMergeDialog()
+  } catch (e) {
+    mergeError.value = e.message || 'Failed to merge columns.'
   }
 }
 
@@ -756,6 +840,8 @@ const items = computed(() => {
   justify-content: center !important;
   align-items: center !important;
   text-align: center !important;
+  position: relative;
+  padding-right: 28px; /* Space for merge button */
 }
 .table-cell-center {
   justify-content: center !important;
@@ -1158,5 +1244,95 @@ const items = computed(() => {
   border: none;
   margin: 0;
   background: #f7f8fa;
+}
+
+/* Merge button styles */
+.merge-header-btn {
+  right: -0.8em;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 1.5px solid #2F3775;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(47,55,117,0.08);
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s, border-color 0.2s;
+}
+.merge-header-btn:hover {
+  background: #e6eaf3;
+  border-color: #1a1e3a;
+}
+
+/* Merge dialog styles */
+.merge-dialog-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(47, 55, 117, 0.7);
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.merge-dialog-card {
+  background: #fff;
+  border: 2px solid #2F3775;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(47, 55, 117, 0.15);
+  padding: 2em 2.5em;
+  max-width: 400px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.merge-dialog-card h3 {
+  color: #2F3775;
+  font-size: 1.4em;
+  font-weight: 700;
+  margin-bottom: 0.8em;
+  text-align: center;
+  font-family: 'Along Sans', sans-serif;
+}
+.merge-dialog-card p {
+  color: #2F3775;
+  font-size: 1.1em;
+  margin-bottom: 1.5em;
+  text-align: center;
+}
+.merge-dialog-card .submit-btn {
+  width: 100%;
+  padding: 0.8em 0;
+  background: #2F3775;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 1.15em;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: block;
+  margin-bottom: 1em;
+  font-family: 'Along Sans', sans-serif;
+  font-weight: 700;
+}
+.merge-dialog-card .submit-btn:last-child {
+  background: #b0b0b0;
+  color: #2F3775;
+}
+.merge-dialog-card .error-msg {
+  color: #d32f2f;
+  margin-top: 0.5em;
+  font-weight: 500;
+  text-align: center;
 }
 </style>
