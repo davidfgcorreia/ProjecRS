@@ -1,3 +1,4 @@
+openpyxl
 fpdf
 fastapi
 uvicorn[standard]

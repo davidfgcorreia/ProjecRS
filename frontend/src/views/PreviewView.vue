@@ -40,6 +40,7 @@
             <option value="xlsx">Excel</option>
             <option value="pdf">PDF</option>
             <option value="md">Markdown</option>
+            <option value="docx">Word (.docx)</option>
           </select>
           <span class="icon-placeholder download-icon" title="Download" @click="download(selectedFormat)">
             <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
@@ -61,112 +62,38 @@
         <p>Loading table data...</p>
       </div>
       <div v-else>
-        <div class="preview-table-section">
-          <!-- TODO: Replace with API table data -->
-          <table class="simple-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Role</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1</td>
-                <td>Alice Smith</td>
-                <td>alice.smith@example.com</td>
-                <td>Active</td>
-                <td>Admin</td>
-                <td>2025-08-01</td>
-              </tr>
-              <tr>
-                <td>2</td>
-                <td>Bob Johnson</td>
-                <td>bob.johnson@example.com</td>
-                <td>Inactive</td>
-                <td>User</td>
-                <td>2025-07-15</td>
-              </tr>
-              <tr>
-                <td>3</td>
-                <td>Carol Lee</td>
-                <td>carol.lee@example.com</td>
-                <td>Active</td>
-                <td>Editor</td>
-                <td>2025-07-20</td>
-              </tr>
-              <tr>
-                <td>4</td>
-                <td>David Kim</td>
-                <td>david.kim@example.com</td>
-                <td>Pending</td>
-                <td>Viewer</td>
-                <td>2025-08-03</td>
-              </tr>
-              <tr>
-                <td>5</td>
-                <td>Eva Brown</td>
-                <td>eva.brown@example.com</td>
-                <td>Active</td>
-                <td>User</td>
-                <td>2025-08-05</td>
-              </tr>
-              <tr>
-                <td>6</td>
-                <td>Frank White</td>
-                <td>frank.white@example.com</td>
-                <td>Inactive</td>
-                <td>Admin</td>
-                <td>2025-07-10</td>
-              </tr>
-              <tr>
-                <td>7</td>
-                <td>Grace Green</td>
-                <td>grace.green@example.com</td>
-                <td>Active</td>
-                <td>Editor</td>
-                <td>2025-08-06</td>
-              </tr>
-              <tr>
-                <td>8</td>
-                <td>Henry Black</td>
-                <td>henry.black@example.com</td>
-                <td>Pending</td>
-                <td>User</td>
-                <td>2025-08-02</td>
-              </tr>
-              <tr>
-                <td>9</td>
-                <td>Ivy Blue</td>
-                <td>ivy.blue@example.com</td>
-                <td>Active</td>
-                <td>Viewer</td>
-                <td>2025-07-30</td>
-              </tr>
-              <tr>
-                <td>10</td>
-                <td>Jack Red</td>
-                <td>jack.red@example.com</td>
-                <td>Inactive</td>
-                <td>User</td>
-                <td>2025-07-25</td>
-              </tr>
-            </tbody>
-          </table>
+        <div v-if="headers.length === 0 || items.length === 0" class="error-msg">
+          <p>Could not load table data. Please check your query or try again.</p>
         </div>
-        <div class="table-description-field">
-          <label class="description-label">Table Description:</label>
-          <div class="description-content">
-            {{ tableDescription }}
+        <div v-else>
+          <div class="preview-table-section">
+            <table class="simple-table">
+              <thead>
+                <tr>
+                  <th v-for="header in headers" :key="header.value">{{ header.title }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, rowIdx) in items" :key="rowIdx">
+                  <td v-for="header in headers" :key="header.value">
+                    <span style="width: 100%; text-align: center;">
+                      {{ (row[header.value] !== undefined && row[header.value] !== null && String(row[header.value]).trim() !== '') ? String(row[header.value]) : '-' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-        <div class="action-buttons">
-          <a href="#" class="back-link" @click.prevent="goBack">Back</a>
-          <button class="upload-btn" @click="goToUpload">Go to Upload Page</button>
+          <div class="table-description-field">
+            <label class="description-label">Table Description:</label>
+            <div class="description-content">
+              {{ tableDescription }}
+            </div>
+          </div>
+          <div class="action-buttons">
+            <a href="#" class="back-link" @click.prevent="goBack">Back</a>
+            <button class="upload-btn" @click="goToUpload">Go to Upload Page</button>
+          </div>
         </div>
       </div>
     </div>
@@ -174,17 +101,73 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted, computed, watch } from 'vue'
 import { getTableData } from '@/api/tableDataService'
-import { downloadTableFile } from '@/api/tableDownloadService'
+import { downloadTableFile } from '@/api/downloadService'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 const table = ref(null)
 const loading = ref(true)
+const errorMsg = ref('')
 const selectedFormat = ref('csv')
-const tableDescription = ref('This table lists 10 users with their names, emails, account status, roles, and creation dates. It provides a quick overview of user activity and access levels in the system.')
+const tableDescription = ref('Preview of the processed table for the current query. All values and metadata are shown as in the result page.')
+
+const headers = computed(() => {
+  let result = []
+  if (table.value) {
+    let headerValues = []
+    if (table.value.column_titles && Array.isArray(table.value.column_titles)) {
+      headerValues = table.value.column_titles
+    } else if (table.value.row_ids && Array.isArray(table.value.row_ids)) {
+      headerValues = table.value.row_ids
+    }
+    if (Array.isArray(table.value.columns_content) && table.value.columns_content.length > 0) {
+      const firstRow = table.value.columns_content[0]
+      const allKeys = Object.keys(firstRow)
+      result = []
+      if (allKeys.length > 0) {
+        result.push({ value: allKeys[0], title: 'File' })
+        for (let idx = 1; idx < allKeys.length; idx++) {
+          // Shift headerValues by one: col1 gets headerValues[0], col2 gets headerValues[1], ...
+          result.push({ value: allKeys[idx], title: headerValues[idx - 1] || allKeys[idx] })
+        }
+      }
+    }
+  }
+  return result
+})
+
+const items = computed(() => {
+  if (table.value && Array.isArray(table.value.columns_content)) {
+    // Get all column keys from headers
+    const allKeys = headers.value.map(h => h.value)
+    const result = table.value.columns_content.map(rowObj => {
+      const displayRow = { __meta__: {} }
+      for (const key of allKeys) {
+        const cell = rowObj[key]
+        if (cell && typeof cell === 'object' && 'display' in cell) {
+          displayRow[key] = cell.display
+          displayRow.__meta__[key] = cell.meta
+        } else if (cell !== undefined && cell !== null) {
+          displayRow[key] = cell
+          displayRow.__meta__[key] = null
+        } else {
+          displayRow[key] = ''
+          displayRow.__meta__[key] = null
+        }
+      }
+      return displayRow
+    })
+    return result
+  }
+  return []
+})
+
+// Watch table.value and log computed headers/items after API response
+watch(table, (newVal) => {
+})
 
 function goBack() {
   router.back()
@@ -195,46 +178,41 @@ function goToUpload() {
 }
 
 onMounted(async () => {
-  // You can pass queryId via route or global store
-  const queryId = route.params.count
+  let queryId = localStorage.getItem('queryId')
+  if (!queryId) {
+    queryId = route.query.query_id || route.params.count
+  }
   if (queryId) {
     try {
       loading.value = true
       table.value = await getTableData(queryId)
+      if (table.value && table.value.columns_content) {
+      }
     } catch (e) {
-      // handle error
+      errorMsg.value = 'Failed to load table data.'
     } finally {
       loading.value = false
     }
-  } else {
-    loading.value = false
   }
 })
 
-const headers = computed(() => {
-  if (table.value && table.value.column_titles) {
-    return table.value.column_titles.map((title, idx) => ({ value: `col${idx}`, title }))
-  }
-  return []
-})
-const items = computed(() => {
-  if (table.value && Array.isArray(table.value.columns_content)) {
-    return table.value.columns_content.map(rowArr => {
-      const rowObj = {}
-      rowArr.forEach((cell, idx) => {
-        rowObj[`col${idx}`] = cell
-      })
-      return rowObj
-    })
-  }
-  return []
-})
 
 async function download(format) {
+  // Get queryId from localStorage (preferred), fallback to route
+  let queryId = localStorage.getItem('queryId')
+  if (!queryId) {
+    queryId = route.query.query_id || route.params.count
+  }
+  if (!queryId) {
+    errorMsg.value = 'No queryId found for download.'
+    return
+  }
   try {
-    await downloadTableFile(format, table.value)
+    // Call the backend API to download the file
+    // Replace with your actual API call
+    await downloadTableFile({ format, queryId })
   } catch (e) {
-    alert('Download failed.')
+    errorMsg.value = 'Failed to download file.'
   }
 }
 </script>

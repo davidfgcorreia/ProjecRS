@@ -7,6 +7,7 @@ from app.api import result
 from app.api import table_data
 from app.api import localization
 from app.api import highlight_header
+from app.api import download
 from app.db.database import Base, engine, init_admin_user
 import time
 from sqlalchemy.exc import OperationalError # type: ignore
@@ -47,3 +48,4 @@ app.include_router(result.router)
 app.include_router(table_data.router)
 app.include_router(localization.router)
 app.include_router(highlight_header.router)
+app.include_router(download.router)
