@@ -321,7 +321,12 @@ import { useGlobalStore } from '@/stores/global'
 const route = useRoute()
 const router = useRouter()
 function goToPreview() {
-  router.push('/preview')
+  // Get queryId from global store or route
+  let queryId = globalStore && globalStore.queryId ? globalStore.queryId : (route.params.query_id || route.params.count)
+  if (globalStore && queryId) {
+    globalStore.queryId = queryId
+  }
+  router.push({ name: 'Preview' })
 }
 const table = ref(null)
 const errorMsg = ref('')

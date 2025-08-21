@@ -3,7 +3,7 @@ Run LLM prompt (ChatGPT-4.1) on copied markdown sections for each study, sending
 Outputs results to 'output_file_sections_promt_ai/ouput_sections.txt'.
 """
 import os
-import openai
+import openai # type: ignore
 
 PROMPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'promts', 'promt_sections.txt'))
 SECTIONS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'main_storage', 'exemple', 'extracted_by_titles'))

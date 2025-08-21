@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 /**
  * Download a table file from the backend.
  * @param {Object} params - Parameters for download
- * @param {string} params.format - File format (csv, xlsx, pdf, md)
+ * @param {string} params.format - File format (csv, xlsx, pdf, docx)
  * @param {string} params.queryId - Query ID
  */
 export async function downloadTableFile({ format, queryId }) {

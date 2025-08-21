@@ -109,10 +109,10 @@ html, body {
 }
 
 .logo-img-big {
-  width: 120px;
-  height: 120px;
-  max-width: 40vw;
-  max-height: 40vh;
+  width: 235px;
+  height: 235px;
+  max-width: 78vw;
+  max-height: 78vh;
   display: block;
   margin: 0 auto 1.2em auto;
 }

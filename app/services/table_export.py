@@ -44,6 +44,7 @@ def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[byt
         else:
             return str(header)
     flat_headers = [flatten_header(h) for h in headers]
+    flat_headers = ["File"] + flat_headers  # Add "File" as the first column header
     # Use original column names for headers
     # Filename will include 'Sistematic Revision {time}'
     from datetime import datetime
@@ -51,10 +52,12 @@ def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[byt
     dict_rows = []
     for row in table.columns_content:
         dict_row = {}
-        for idx, col in enumerate(headers):
+        # Always set the first column as 'File' (col0)
+        dict_row[flat_headers[0]] = flatten_cell(row.get('col0', '-')) or '-'
+        # For all other columns, match flat_headers[1:] to col1, col2, ...
+        for idx in range(1, len(flat_headers)):
             key = f'col{idx}'
             value = flatten_cell(row.get(key, ''))
-            # If value is empty, always use '-'
             if value == '':
                 value = '-'
             dict_row[flat_headers[idx]] = value
@@ -113,35 +116,75 @@ def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[byt
         mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         filename = file_path
     elif file_format == 'pdf':
-        df = pd.DataFrame(dict_rows, columns=flat_headers)
-        buf = io.StringIO()
-        df.to_csv(buf, index=False)
-        data = buf.getvalue().encode('utf-8')
+        # Generate a PDF using reportlab
+        from reportlab.lib.pagesizes import letter, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet
+        pdf_buffer = io.BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(letter))
+        elements = []
+        style = getSampleStyleSheet()
+        # Title
+        elements.append(Paragraph(f"Sistematic Revision Table - Query {query_id}", style['Title']))
+        elements.append(Spacer(1, 12))
+        # Table data
+        data_table = [flat_headers] + [ [row.get(h, '-') for h in flat_headers] for row in dict_rows ]
+        t = Table(data_table)
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#2F3775')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+            ('FONTSIZE', (0,0), (-1,-1), 10),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.lightgrey]),
+        ]))
+        elements.append(t)
+        doc.build(elements)
+        data = pdf_buffer.getvalue()
         mime = 'application/pdf'
-        filename = f'table_{query_id}.pdf'
-    elif file_format == 'md':
-        df = pd.DataFrame(dict_rows, columns=flat_headers)
-        buf = io.StringIO()
-        buf.write(df.to_markdown(index=False))
-        data = buf.getvalue().encode('utf-8')
-        mime = 'text/markdown'
-        filename = f'table_{query_id}.md'
+        filename = f'Sistematic_Revision_{now_str}_{query_id}.pdf'
     elif file_format == 'docx':
         from docx import Document
         from docx.shared import Pt
         from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
         doc = Document()
         table_doc = doc.add_table(rows=1, cols=len(flat_headers))
+        def set_cell_border(cell):
+            tc = cell._tc
+            tcPr = tc.get_or_add_tcPr()
+            for border_name in ['top', 'left', 'bottom', 'right']:
+                border = OxmlElement('w:tcBorders')
+                border_tag = OxmlElement(f'w:{border_name}')
+                border_tag.set(qn('w:val'), 'single')
+                border_tag.set(qn('w:sz'), '8')  # 8 eighths of a point
+                border_tag.set(qn('w:space'), '0')
+                border_tag.set(qn('w:color'), '000000')
+                border.append(border_tag)
+                tcPr.append(border)
         hdr_cells = table_doc.rows[0].cells
         for idx, header in enumerate(flat_headers):
             hdr_cells[idx].text = header
             hdr_cells[idx].paragraphs[0].runs[0].font.bold = True
             hdr_cells[idx].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER  # Center
+            set_cell_border(hdr_cells[idx])
+            # Set header background color to #2F3775
+            tc = hdr_cells[idx]._tc
+            tcPr = tc.get_or_add_tcPr()
+            shd = OxmlElement('w:shd')
+            shd.set(qn('w:fill'), '2F3775')
+            tcPr.append(shd)
         for dict_row in dict_rows:
             row_cells = table_doc.add_row().cells
             for idx, header in enumerate(flat_headers):
                 row_cells[idx].text = dict_row.get(header, '-')
                 row_cells[idx].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER  # Center
+                set_cell_border(row_cells[idx])
         out_buf = io.BytesIO()
         doc.save(out_buf)
         data = out_buf.getvalue()

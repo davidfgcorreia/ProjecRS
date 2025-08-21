@@ -1,71 +1,49 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 333.3 252.1">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #283377;
+      }
 
-<svg
-   width="60.688053mm"
-   height="39.534458mm"
-   viewBox="0 0 60.688053 39.534458"
-   version="1.1"
-   id="svg1"
-   xml:space="preserve"
-   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
-   sodipodi:docname="logo.svg"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg"><sodipodi:namedview
-     id="namedview1"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:document-units="mm"
-     inkscape:zoom="0.98646753"
-     inkscape:cx="331.99268"
-     inkscape:cy="205.27792"
-     inkscape:window-width="1920"
-     inkscape:window-height="1001"
-     inkscape:window-x="-9"
-     inkscape:window-y="-9"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer2" /><defs
-     id="defs1"><rect
-       x="93.26207"
-       y="69.946548"
-       width="224.03169"
-       height="120.63246"
-       id="rect2" /></defs><g
-     inkscape:label="Camada 1"
-     inkscape:groupmode="layer"
-     id="layer1"
-     transform="translate(-2.1507408,-15.757509)" /><g
-     inkscape:groupmode="layer"
-     id="layer2"
-     inkscape:label="Camada 2"
-     transform="translate(-4.9669764,-8.2475473)"><text
-       xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.73132px;font-family:'Microsoft Sans Serif';-inkscape-font-specification:'Microsoft Sans Serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;opacity:1;fill:#1e1e1e;fill-opacity:1;stroke-width:0.644277"
-       x="3.6180205"
-       y="59.530418"
-       id="text1"
-       transform="scale(1.2478504,0.80137811)"><tspan
-         sodipodi:role="line"
-         id="tspan1"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.73132px;font-family:'Microsoft Sans Serif';-inkscape-font-specification:'Microsoft Sans Serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#1e1e1e;fill-opacity:1;stroke-width:0.644277"
-         x="3.6180205"
-         y="59.530418">CLEVIDENCE</tspan></text><path
-       style="opacity:1;fill:#273478;fill-opacity:1;fill-rule:nonzero;stroke-width:0.264583"
-       d="m 13.03736,40.366043 c 7.375856,-10.527358 7.509963,-10.460305 7.509963,-10.460305 l 7.577015,10.527358 z"
-       id="path7" /><path
-       style="opacity:1;fill:#2d3f8b;fill-opacity:1;fill-rule:nonzero;stroke-width:0.264583"
-       d="M 25.576316,22.798096 38.31643,40.231936 H 32.952169 L 25.308103,29.704578 20.413216,29.972792 Z"
-       id="path8" /><path
-       style="opacity:1;fill:#40519e;fill-opacity:1;fill-rule:nonzero;stroke-width:0.264583"
-       d="m 30.538254,15.623401 -5.028991,7.174695 h 5.163098 l 12.606006,17.500894 5.096044,-0.134107 z"
-       id="path9" /><path
-       style="opacity:1;fill:#8ba7d7;fill-opacity:1;fill-rule:nonzero;stroke-width:0.264583"
-       d="m 35.761146,8.2475473 -5.163098,7.3087997 5.498365,0.06705 17.299733,24.809696 5.498364,-0.06705 z"
-       id="path10" /></g></svg>
+      .cls-2 {
+        fill: #1d1d1b;
+      }
+
+      .cls-3 {
+        fill: #3f519f;
+      }
+
+      .cls-4 {
+        fill: #89a6d7;
+      }
+
+      .cls-5 {
+        fill: #2f3e89;
+      }
+    </style>
+  </defs>
+  <!-- Generator: Adobe Illustrator 28.7.2, SVG Export Plug-In . SVG Version: 1.2.0 Build 154)  -->
+  <g>
+    <g id="Camada_1">
+      <g>
+        <path class="cls-4" d="M165.6,25.7c-8.5,11.8-17,23.7-25.4,35.5l1,.5c-.2-.3-.4-.5-.6-.8.7,0,1.1,0,1.6,0,7.3,0,14.7,0,22,0,1,0,1.6.3,2.2,1.2,4.2,5.9,8.4,11.8,12.6,17.7,24,33.5,48,67,72.1,100.5.5.7,1,1.1,1.9,1.1,7.6,0,15.1,0,22.7,0,.3,0,.7,0,1.2-.2-37.2-51.8-74.2-103.5-111.4-155.4Z"/>
+        <path class="cls-3" d="M140.2,61.2c-8.3,11.6-16.6,23.1-24.9,34.7h.2c.9,0,1.4,0,1.9,0,6.9,0,13.7,0,20.6,0,1.8,0,2.9.5,4,2,19.6,27.4,39.2,54.8,58.9,82.2.7.9,1.3,1.3,2.5,1.3,7.3,0,14.6,0,21.9,0,.5,0,1,0,1.8,0-28.7-40.1-57.2-79.8-85.9-119.8l-.9-.3Z"/>
+        <path class="cls-1" d="M56.3,178c12-16.7,23.7-33,35.8-50,12.1,16.8,23.9,33.2,36,50H56.3Z"/>
+        <path class="cls-5" d="M116,95c-8.2,11.5-16.5,23-24.7,34.5l.8.5c-.1-.2-.3-.4-.4-.6.6,0,.9-.1,1.2-.1,7.6,0,15.1,0,22.7,0,.6,0,1.4.6,1.7,1.1,11.5,16,23.1,32.1,34.5,48.2.6.8,1.2,1.2,2.2,1.2,7.4,0,14.8,0,22.1,0,.4,0,.9,0,1.6-.1-20.2-28.2-40.3-56.2-60.5-84.4l-1.3-.2Z"/>
+      </g>
+      <g>
+        <path class="cls-2" d="M50.3,209.8c0,0,0,.1,0,.2-1.8,5.4-6.5,8.3-12.1,8.3-.4,0-.8,0-1.2-.1-.6,0-1.2-.2-1.7-.4-5-1.5-8.4-5.9-8.7-11.1,0-.6,0-1.2,0-1.7.5-6,5.3-10.2,11.2-10.9h.6s0,0,0,0h.4c.3,0,.7,0,1.1,0,.4,0,.8.1,1.3.2,4.1.8,7.9,4.2,9.1,8.2h-4.1c-1.4-2.7-4.2-4.6-7.4-4.6-4.6,0-8.4,3.7-8.4,8.3s3.7,8.3,8.2,8.3c3.3,0,6.2-1.9,7.5-4.6h4.1Z"/>
+        <path class="cls-2" d="M78.6,214.5v3.8h-17.8v-24.3h3.8v20.5h13.9Z"/>
+        <path class="cls-2" d="M89.1,194h16.5v3.8h-12.6v16.7h12.6v3.8h-16.5v-24.3ZM103.4,204.2v3.8s-8.3,0-8.3,0v-3.8h8.3Z"/>
+        <path class="cls-2" d="M120.3,194c.3.7.6,1.3.9,1.9,1.9,3.8,3.8,7.6,5.7,11.3.4.8.8,1.6,1.2,2.4,0,0,0,0,0,0,0,0,0,.1,0,.1s0,0,0-.1c1.7-3.5,3.5-6.9,5.3-10.3.9-1.8,1.9-3.6,2.8-5.4h4.3c-2.3,4.5-4.6,9-6.8,13.5-1.9,3.6-3.7,7.2-5.5,10.7,0,0,0,.1-.1.1,0,0,0,0,0-.1-.4-.7-.7-1.4-1.1-2.1-1.2-2.2-2.3-4.5-3.4-6.7-2.1-4.2-4.2-8.3-6.3-12.5-.5-.9-.9-1.9-1.4-2.9h4.3Z"/>
+        <path class="cls-2" d="M151.2,218.3v-24.3h3.8v24.3h-3.8Z"/>
+        <path class="cls-2" d="M185.8,206.1c0,6.7-5.4,12.1-12.1,12.1h-8.2v-24.3h8.2c4.9,0,9.3,2.9,11.2,7.4.6,1.5.9,3.1.9,4.7ZM182,206.1c0-4.6-3.7-8.3-8.3-8.3h-4.3v16.7h4.3c4.6,0,8.3-3.7,8.3-8.3Z"/>
+        <path class="cls-2" d="M196.3,194h16.5v3.8h-12.6v16.7h12.6v3.8h-16.5v-24.3ZM210.6,204.2v3.8s-8.3,0-8.3,0v-3.8h8.3Z"/>
+        <path class="cls-2" d="M245.6,218.3l-18.5-16.1v14h-3.8v-22.4l18.5,16.1v-14.8h3.8v23.3Z"/>
+        <path class="cls-2" d="M279.8,209.8c0,0,0,.1,0,.2-1.8,5.4-6.5,8.3-12.1,8.3-.4,0-.8,0-1.2-.1-.6,0-1.2-.2-1.7-.4-5-1.5-8.4-5.9-8.7-11.1,0-.6,0-1.2,0-1.7.5-6,5.3-10.2,11.2-10.9h.6s0,0,0,0h.4c.3,0,.7,0,1.1,0,.4,0,.8.1,1.3.2,4.1.8,7.9,4.2,9.1,8.2h-4.1c-1.4-2.7-4.2-4.6-7.4-4.6-4.6,0-8.4,3.7-8.4,8.3s3.7,8.3,8.2,8.3c3.3,0,6.2-1.9,7.5-4.6h4.1Z"/>
+        <path class="cls-2" d="M290.2,194h16.5v3.8h-12.6v16.7h12.6v3.8h-16.5v-24.3ZM304.6,204.2v3.8s-8.3,0-8.3,0v-3.8h8.3Z"/>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -39,7 +39,6 @@
             <option value="csv">CSV</option>
             <option value="xlsx">Excel</option>
             <option value="pdf">PDF</option>
-            <option value="md">Markdown</option>
             <option value="docx">Word (.docx)</option>
           </select>
           <span class="icon-placeholder download-icon" title="Download" @click="download(selectedFormat)">
@@ -87,7 +86,7 @@
           <div class="table-description-field">
             <label class="description-label">Table Description:</label>
             <div class="description-content">
-              {{ tableDescription }}
+              <Markdown :source="tableDescription.replace(/\\n/g, '\n')" />
             </div>
           </div>
           <div class="action-buttons">
@@ -101,18 +100,22 @@
 </template>
 
 <script setup>
+import Markdown from 'vue3-markdown-it'
 import { ref, onMounted, computed, watch } from 'vue'
 import { getTableData } from '@/api/tableDataService'
 import { downloadTableFile } from '@/api/downloadService'
+import { getTableDescription } from '@/api/tableDataService'
 import { useRoute, useRouter } from 'vue-router'
+import { useGlobalStore } from '@/stores/global'
 
 const route = useRoute()
 const router = useRouter()
+const globalStore = useGlobalStore()
 const table = ref(null)
 const loading = ref(true)
 const errorMsg = ref('')
 const selectedFormat = ref('csv')
-const tableDescription = ref('Preview of the processed table for the current query. All values and metadata are shown as in the result page.')
+const tableDescription = ref('Loading table description...')
 
 const headers = computed(() => {
   let result = []
@@ -178,18 +181,27 @@ function goToUpload() {
 }
 
 onMounted(async () => {
-  let queryId = localStorage.getItem('queryId')
+  let queryId = globalStore.queryId
   if (!queryId) {
-    queryId = route.query.query_id || route.params.count
+    queryId = route.query.query_id || route.params.count || localStorage.getItem('queryId')
   }
   if (queryId) {
+    // Store queryId in localStorage for persistence
+    localStorage.setItem('queryId', queryId)
+    // Ensure queryId is present in the URL
+    if (!route.query.query_id || route.query.query_id !== queryId) {
+      router.replace({ query: { ...route.query, query_id: queryId } })
+    }
     try {
       loading.value = true
       table.value = await getTableData(queryId)
+      // Fetch table description from backend
+      tableDescription.value = await getTableDescription(queryId)
       if (table.value && table.value.columns_content) {
       }
     } catch (e) {
       errorMsg.value = 'Failed to load table data.'
+      tableDescription.value = 'Failed to load table description.'
     } finally {
       loading.value = false
     }
@@ -198,8 +210,8 @@ onMounted(async () => {
 
 
 async function download(format) {
-  // Get queryId from localStorage (preferred), fallback to route
-  let queryId = localStorage.getItem('queryId')
+  // Get queryId from global store, fallback to route
+  let queryId = globalStore.queryId
   if (!queryId) {
     queryId = route.query.query_id || route.params.count
   }
@@ -208,8 +220,6 @@ async function download(format) {
     return
   }
   try {
-    // Call the backend API to download the file
-    // Replace with your actual API call
     await downloadTableFile({ format, queryId })
   } catch (e) {
     errorMsg.value = 'Failed to download file.'
@@ -484,11 +494,13 @@ async function download(format) {
   margin: 2em 0 1em 0;
   padding: 1em 1.5em;
   background: #f0f4fa;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px 0 rgba(47,55,117,0.06);
-  max-width: 700px;
+  border-radius: 0;
+  box-shadow: none;
   width: 100%;
+  min-width: unset;
+  max-width: unset;
   font-family: 'Muli', sans-serif;
+  display: block;
 }
 .description-label {
   font-weight: 700;
@@ -501,6 +513,7 @@ async function download(format) {
   color: #222;
   font-size: 1em;
   margin-top: 0.2em;
+  text-align: left;
 }
 .action-buttons {
   display: flex;

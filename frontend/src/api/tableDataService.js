@@ -1,4 +1,23 @@
 /**
+ * Fetch table description by queryId from backend.
+ * @param {string} query_id - The query ID for the table.
+ * @returns {Promise<string>} - Table description text.
+ */
+export async function getTableDescription(query_id) {
+  const response = await fetch(`http://localhost:8000/tabledata/table-description/?query_id=${encodeURIComponent(query_id)}`)
+  if (!response.ok) {
+    let errText = 'Failed to fetch table description';
+    try {
+      const err = await response.json();
+      errText = typeof err === 'string' ? err : JSON.stringify(err, null, 2);
+    } catch (e) {
+      errText = await response.text();
+    }
+    throw new Error(errText);
+  }
+  return response.text();
+}
+/**
  * Merge two columns in the table on the backend and get the updated table.
  * @param {Object} payload - { query_id, col1, col2 }
  * @returns {Promise<any>} - API response (updated table)

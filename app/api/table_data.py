@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, Body, HTTPException # type: ignore
+from fastapi import status,APIRouter, Depends, Query, Body, HTTPException # type: ignore
 from sqlalchemy.orm.attributes import flag_modified #type: ignore
 from sqlalchemy.orm import Session # type: ignore
 from typing import List
@@ -8,6 +8,7 @@ from app.schemas.table_data import TableDataRead, TableDataCreate, TableCell
 from app.processing_operation.modular_processing_caller import modular_processing_and_store
 from app.processing_operation.operarions.merge_columns import merge_columns
 from app.processing_operation.operarions.merge_cells import merge_cells_in_column
+from app.services.table_description_llm import get_table_description_llm
 import asyncio
 import logging
 
@@ -145,3 +146,17 @@ def merge_cell(
     db.commit()
     db.refresh(table)
     return table
+
+
+@router.get('/table-description/')
+def get_table_description(query_id: str, db: Session = Depends(get_db)):
+    table = db.query(TableData).filter(TableData.query_id == query_id).first()
+    if not table:
+        raise HTTPException(status_code=404, detail="Table not found for this query_id")
+    try:
+        description = get_table_description_llm(table)
+        return description
+    except Exception as e:
+        import logging
+        logging.error(f"LLM table description error: {e}")
+        return ''
