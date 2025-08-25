@@ -1,6 +1,8 @@
 """
-Run LLM prompt (ChatGPT-4.1) on copied markdown sections for each study, sending indexes and copied sections as input.
-Outputs results to 'output_file_sections_promt_ai/ouput_sections.txt'.
+Run debug LLM prompt flow for sections (uses debug model/settings).
+
+This module provides a debug variant that writes outputs to debug folders
+and uses logging-friendly formats to aid iteration.
 """
 import os
 import openai

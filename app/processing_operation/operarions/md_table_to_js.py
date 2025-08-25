@@ -1,10 +1,10 @@
-"""
-Parse a markdown file containing a table and output Headers and Items in the specified JS format.
+"""Convert markdown tables into a simple JSON structure for JS/front-end use.
+
+Parses a markdown table and emits header and row arrays usable by the
+frontend or other tooling.
 """
 import re
-import sys
 import json
-from typing import List, Dict, Any
 
 def parse_md_table(md_path: str):
     with open(md_path, 'r', encoding='utf-8') as f:

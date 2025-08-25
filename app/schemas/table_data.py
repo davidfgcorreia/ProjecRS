@@ -1,11 +1,35 @@
+"""Schemas describing table data exchanged with the API.
+
+This module contains Pydantic models that mirror the `TableData` database
+model and validate table content sent between the frontend and backend.
+"""
+
 from pydantic import BaseModel, ConfigDict, conint, Field # type: ignore
 from typing import List, Annotated, Optional, Dict, Any
 
+
 class TableCell(BaseModel):
+    """Represents a single table cell's display value and optional metadata.
+
+    Attributes:
+        display: The rendered display value for the cell (string).
+        meta: Optional string with additional metadata about the cell.
+    """
     display: str
     meta: Optional[str] = None
 
+
 class TableDataBase(BaseModel):
+    """Base schema for table data operations.
+
+    Attributes:
+        query_id: The identifier of the associated query.
+        userid: Numeric user id who owns the table.
+        num_rows: Number of rows in the table (must be >= 1).
+        row_ids: List of row identifier strings.
+        columns_content: Optional list of per-row dicts mapping column keys
+                         (e.g., 'col0') to TableCell objects.
+    """
     query_id: str
     userid: int
     num_rows: Annotated[int, conint(ge=1)]
@@ -19,9 +43,13 @@ class TableDataBase(BaseModel):
             TableCell: lambda v: v.dict() if isinstance(v, TableCell) else v
         }
 
+
 class TableDataCreate(TableDataBase):
+    """Schema used for creating a new table record."""
     pass
 
+
 class TableDataRead(TableDataBase):
+    """Schema used to return a stored table record with its id."""
     id: int
     model_config = ConfigDict(from_attributes=True)

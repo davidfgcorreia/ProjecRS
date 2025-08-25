@@ -1,10 +1,8 @@
-"""
-This script merges two sets of parsed output files (one per study) in the new format.
-For each study, it keeps the formatting and key order of the first file (parsed from output_indexes.txt),
-fills empty values with those from the second file (parsed from output_indexes2.txt),
-and writes the merged result to storage/final_values_for_tables/parsed_per_study.
-"""
+"""Merge parsed outputs (indexes) from various LLM runs into final values.
 
+This module combines parsed rows/columns from multiple sources into a
+single normalized set of final values used to build merged markdown tables.
+"""
 import os
 
 PARSED1_DIR = "../storage/parsed_output_tables"

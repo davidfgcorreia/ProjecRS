@@ -1,6 +1,7 @@
-"""
-Step 3: Run LLM prompt (ChatGPT-4.1) on all markdown table files in the 'tables' folder using the prompt in 'promts/promt_tables.txt'.
-Outputs results to 'output_file_promt_ai/ouput_indexs.txt'.
+"""Run LLM prompts for extracted tables.
+
+Sends markdown table content to a prompt template and writes prompt
+responses into an output file for parsing.
 """
 import os
 import openai

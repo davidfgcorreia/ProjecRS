@@ -1,6 +1,11 @@
-from fastapi import status,APIRouter, Depends, Query, Body, HTTPException # type: ignore
-from sqlalchemy.orm.attributes import flag_modified #type: ignore
-from sqlalchemy.orm import Session # type: ignore
+"""
+Table Data API endpoints for accessing, updating, and describing tabular data.
+
+Defines routes for CRUD operations, merging columns/cells, and LLM-powered table descriptions.
+"""
+from fastapi import status,APIRouter, Depends, Query, Body, HTTPException 
+from sqlalchemy.orm.attributes import flag_modified 
+from sqlalchemy.orm import Session
 from typing import List
 from app.db.database import get_db
 from app.models.table_data import TableData
@@ -39,13 +44,16 @@ def get_table_data(
     table = db.query(TableData).filter(TableData.query_id == query_id).first()
     if not table:
         raise HTTPException(status_code=404, detail="Table not found for this query_id")
-    # Convert columns_content for response
-    table.columns_content = convert_columns_content_for_response(table.columns_content)
+    # Convert columns_content for response (do not overwrite model attribute)
+    columns_content_serialized = convert_columns_content_for_response(table.columns_content)
     # Debug: log the response being sent
     logging.basicConfig(level=logging.DEBUG)
     logging.debug(f"DEBUG API GET response: {table}")
-    logging.debug(f"DEBUG API GET columns_content: {table.columns_content}")
-    return table
+    logging.debug(f"DEBUG API GET columns_content: {columns_content_serialized}")
+    # Return a dict with serialized columns_content
+    table_dict = table.__dict__.copy()
+    table_dict['columns_content'] = columns_content_serialized
+    return table_dict
 
 @router.post("/filled/", response_model=TableDataRead)
 async def post_filled_table(
@@ -54,13 +62,15 @@ async def post_filled_table(
 ):
     loop = asyncio.get_event_loop()
     table = await loop.run_in_executor(None, modular_processing_and_store, data, db)
-    # Convert columns_content for response
-    table.columns_content = convert_columns_content_for_response(table.columns_content)
+    # Convert columns_content for response (do not overwrite model attribute)
+    columns_content_serialized = convert_columns_content_for_response(table.columns_content)
     # Debug: log the response being sent
     logging.basicConfig(level=logging.DEBUG)
     logging.debug(f"DEBUG API POST response: {table}")
-    logging.debug(f"DEBUG API POST columns_content: {table.columns_content}")
-    return table
+    logging.debug(f"DEBUG API POST columns_content: {columns_content_serialized}")
+    table_dict = table.__dict__.copy()
+    table_dict['columns_content'] = columns_content_serialized
+    return table_dict
 
 @router.post("/update-cell/")
 def update_table_cell(
@@ -79,9 +89,11 @@ def update_table_cell(
     table = db.query(TableData).filter(TableData.query_id == query_id).first()
     if not table:
         raise HTTPException(status_code=404, detail="Table not found for this query_id")
+    # Access the actual JSON data stored in table.columns_content
+    columns_content = table.__dict__.get('columns_content', [])
     # Find the row by row_id (col0 value or index)
     row_idx = None
-    for idx, row in enumerate(table.columns_content):
+    for idx, row in enumerate(columns_content):
         if (row.get("col0") == row_id) or (str(row.get("col0")) == str(row_id)):
             row_idx = idx
             break
@@ -93,11 +105,13 @@ def update_table_cell(
         except Exception:
             raise HTTPException(status_code=404, detail="Row not found.")
     # Update the cell value
-    cell = table.columns_content[row_idx].get(col)
+    cell = columns_content[row_idx].get(col)
     if cell and isinstance(cell, dict):
-        table.columns_content[row_idx][col]["display"] = new_value
+        columns_content[row_idx][col]["display"] = new_value
     else:
-        table.columns_content[row_idx][col] = new_value
+        columns_content[row_idx][col] = new_value
+    # Save back to the model
+    setattr(table, 'columns_content', columns_content)
     flag_modified(table, "columns_content")
     db.commit()
     db.refresh(table)
@@ -126,7 +140,10 @@ def merge_table_columns(
     flag_modified(table, "num_rows")
     db.commit()
     db.refresh(table)
-    return table
+    columns_content_serialized = convert_columns_content_for_response(table.columns_content)
+    table_dict = table.__dict__.copy()
+    table_dict['columns_content'] = columns_content_serialized
+    return table_dict
 
 # Merge two cells in the same column
 @router.post("/merge-cell/", response_model=TableDataRead)
@@ -145,7 +162,10 @@ def merge_cell(
     flag_modified(table, "columns_content")
     db.commit()
     db.refresh(table)
-    return table
+    columns_content_serialized = convert_columns_content_for_response(table.columns_content)
+    table_dict = table.__dict__.copy()
+    table_dict['columns_content'] = columns_content_serialized
+    return table_dict
 
 
 @router.get('/table-description/')

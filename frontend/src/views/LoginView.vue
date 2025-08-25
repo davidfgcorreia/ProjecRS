@@ -1,3 +1,16 @@
+<!--
+LoginView.vue
+
+Purpose:
+- Authentication entry point for the application. Provides fields to sign in
+  existing users and links to registration if needed.
+
+Key responsibilities:
+- Validate user credentials, call `userService` to authenticate, and store
+  user info in the Pinia store on success.
+- Provide minimal client-side validation and helpful error messages.
+-->
+
 <template>
   <div class="login-card-centered">
       <img :src="logoUrl" alt="Logo" class="logo-img-big" />

@@ -1,18 +1,48 @@
+"""Utilities to orchestrate modular processing for queries.
+
+This module moves uploaded PDFs for a given query into a temporary
+workspace and then calls the document/table extraction pipeline. The
+resulting table structure is coerced into the `columns_content` format
+used by the `TableData` model and persisted.
+
+Key functions:
+- move_query_pdfs_to_temp(query_id) -> str
+- modular_processing_and_store(data, db) -> TableData
+
+Notes:
+- STORAGE_DIR is computed relative to this file. Caller code should ensure
+    that the running user has write permissions for this directory.
+"""
+
 import os
 import shutil
 import re
-from sqlalchemy.orm import Session  # type: ignore
+import logging
+from sqlalchemy.orm import Session
 from app.models.table_data import TableData
 from app.schemas.table_data import TableDataCreate
 from app.processing_operation.clinical_pdf_pipeline import pipeline
 
+logger = logging.getLogger(__name__)
+
 STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../storage'))
 print(f"[DEBUG] BACKEND STORAGE_DIR: {STORAGE_DIR}")
+logger.debug("BACKEND STORAGE_DIR: %s", STORAGE_DIR)
 
 
-def move_query_pdfs_to_temp(query_id):
-    """
-    Move all PDFs for this query to a temporary folder in storage.
+def move_query_pdfs_to_temp(query_id: str) -> str:
+    """Move PDFs for the given query into a temporary processing folder.
+
+    The function looks for files in `storage/pdfs/` matching the upload
+    filename convention (for example: `pdf_<user_id>_<query_id>_... .pdf`)
+    and moves them into `storage/temporary/query_<query_id>/pdfs/` so the
+    pipeline can operate on a workspace isolated for this query.
+
+    Args:
+        query_id: The identifier for the query whose PDFs will be processed.
+
+    Returns:
+        Absolute path to the temporary working directory for the query.
     """
     pdfs_dir = os.path.join(STORAGE_DIR, 'pdfs')
     temp_dir = os.path.join(STORAGE_DIR, 'temporary', f'query_{query_id}')
@@ -25,12 +55,17 @@ def move_query_pdfs_to_temp(query_id):
         return temp_dir
     # Match pattern: pdf_<user_id>_<query_id>_*.pdf
     pattern = re.compile(rf"^pdf_\d+_{query_id}_.+\.pdf$")
-    print(f"[DEBUG] Files in pdfs_dir: {os.listdir(pdfs_dir)}")
+    try:
+        entries = os.listdir(pdfs_dir)
+    except Exception:
+        entries = []
+    logger.debug("Files in pdfs_dir: %s", entries)
+    print(f"[DEBUG] Files in pdfs_dir: {entries}")
     matched = []
-    from app.models.uploaded_file import UploadedFile
+    # Local imports (avoid top-level circular imports in tests)
     from app.db.database import SessionLocal
     db_session = SessionLocal()
-    for filename in os.listdir(pdfs_dir):
+    for filename in entries:
         if pattern.match(filename):
             matched.append(filename)
             src = os.path.join(pdfs_dir, filename)

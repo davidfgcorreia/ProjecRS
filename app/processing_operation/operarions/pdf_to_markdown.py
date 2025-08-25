@@ -1,3 +1,9 @@
+"""Batch convert PDF files into markdown using OCR/annotation helpers.
+
+Exposes batch_convert_pdfs(pdf_dir, md_root, filenames) which converts a
+list of PDFs into markdown files under the provided md_root.
+"""
+
 import os
 import subprocess
 import tempfile

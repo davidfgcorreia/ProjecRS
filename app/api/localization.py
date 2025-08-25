@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Response # type: ignore
-from sqlalchemy.orm import Session # type: ignore
-from app.db.database import get_db
-from app.models.query import Query
+"""
+Localization API endpoints for language and region support.
+
+Defines routes for retrieving and managing localization data.
+"""
+from fastapi import APIRouter, HTTPException, Response
 from pathlib import Path
 from app.processing_operation.operarions.find_section_by_marker import main as find_section_main
 import os

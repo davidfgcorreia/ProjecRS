@@ -1,3 +1,18 @@
+<!--
+ResultView.vue
+
+Purpose:
+- Shows the extracted table results after file upload and processing.
+  This view allows users to validate, edit, merge, and preview table rows and
+  columns before exporting.
+
+Key responsibilities:
+- Render the table with editable cells, context menus for localization and
+  merging, and a stepper to guide users through the flow.
+- Interact with backend services to fetch highlighted PDFs, update cell
+  values, and perform merge operations.
+-->
+
 <template>
   <div class="result-bg">
     <div class="result-layout">
@@ -53,8 +68,9 @@
               @click:row="onRowClick"
               @contextmenu:row="onRowContextMenu"
             >
-              <template v-for="(header, idx) in headers" #[`header.${header.value}`]="slotProps">
+              <template v-for="(header, idx) in headers" v-slot:[`header.${header.value}`]>
                 <span
+                  :key="header.value + '-hdr'"
                   class="clickable-cell table-header-center"
                   style="user-select: text; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; position: relative;"
                   @click="headerEditKey === header.value ? null : setHeaderEdit(header.value)"
@@ -90,7 +106,7 @@
                   </template>
                 </span>
               </template>
-              <template #item.col0="{ item }">
+              <template v-slot:[`item.col0`]="{ item }">
                 <span
                   :class="item.__meta__ && item.__meta__.col0 ? 'clickable-cell table-cell-center' : 'table-cell-center'"
                   :title="item.__meta__ && item.__meta__.col0 ? 'Request PDF for this value' : ''"
@@ -107,15 +123,16 @@
                       :placeholder="'Edit value...'"
                       autofocus
                       style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
-                    />
+                    ></textarea>
                   </template>
                   <template v-else>
                     <span style="width: 100%; text-align: center;">{{ (item.col0 !== undefined && item.col0 !== null && String(item.col0).trim() !== '') ? String(item.col0) : '-' }}</span>
                   </template>
                 </span>
               </template>
-              <template v-for="header in headers" #[`item.${header.value}`]="{ item, index }">
+              <template v-for="header in headers" v-slot:[`item.${header.value}`]="{ item, index }">
                 <span
+                  :key="header.value + '-' + (index || 0) + '-cell'"
                   :class="'clickable-cell table-cell-center'"
                   style="user-select: text; display: flex; justify-content: center; align-items: center;"
                   @click="isEditingCell(item, header.value) ? null : openCellMenu($event, item, header.value, index)"
@@ -130,7 +147,7 @@
                       :placeholder="'Edit value...'"
                       autofocus
                       style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
-                    />
+                    ></textarea>
                   </template>
                   <template v-else>
                     <span style="width: 100%; text-align: center;">{{ (item[header.value] !== undefined && item[header.value] !== null && String(item[header.value]).trim() !== '') ? String(item[header.value]) : '-' }}</span>
@@ -172,8 +189,9 @@
       dense
       hide-default-footer
     >
-      <template v-for="header in mockHeaders" #[`header.${header.value}`]="slotProps">
+      <template v-for="header in mockHeaders" v-slot:[`header.${header.value}`]>
         <span
+          :key="header.value + '-hdr-mock'"
           class="clickable-cell table-header-center"
           style="user-select: text; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center;"
           @click="headerEditKey === header.value ? null : setHeaderEdit(header.value)"
@@ -194,7 +212,7 @@
           </template>
         </span>
       </template>
-      <template #item."col0"="{ item }">
+              <template v-slot:[`item.col0`]="{ item }">
         <span
           :class="item.__meta__ && item.__meta__.col0 ? 'clickable-cell table-cell-center' : 'table-cell-center'"
           :title="item.__meta__ && item.__meta__.col0 ? 'Request PDF for this value' : ''"
@@ -210,15 +228,16 @@
               :placeholder="'Edit value...'"
               autofocus
               style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
-            />
+            ></textarea>
           </template>
           <template v-else>
             <span style="width: 100%; text-align: center;">{{ (item.col0 !== undefined && item.col0 !== null && String(item.col0).trim() !== '') ? String(item.col0) : '-' }}</span>
           </template>
         </span>
       </template>
-      <template v-for="header in mockHeaders" #[`item.${header.value}`]="{ item }">
+      <template v-for="header in mockHeaders" v-slot:[`item.${header.value}`]="{ item }">
         <span
+          :key="header.value + '-cell-mock'"
           class="clickable-cell table-cell-center"
           style="user-select: text; display: flex; justify-content: center; align-items: center;"
           @click="isEditingCell(item, header.value) ? null : openCellMenu($event, item, header.value)"
@@ -232,7 +251,7 @@
               :placeholder="'Edit value...'"
               autofocus
               style="width: 16ch; min-width: 16ch; min-height: 2.5em; font-size: 1em; border-radius: 4px; border: 1px solid #2F3775; padding: 0.2em 0.5em; resize: vertical; box-sizing: border-box; overflow-y: hidden; text-align: center;"
-            />
+            ></textarea>
           </template>
           <template v-else>
             <span style="width: 100%; text-align: center;">{{ (item[header.value] !== undefined && item[header.value] !== null && String(item[header.value]).trim() !== '') ? String(item[header.value]) : '-' }}</span>
@@ -273,7 +292,7 @@
             autofocus
             @blur="savePdfOverlayValue"
             @keydown.enter="savePdfOverlayValue"
-          />
+          ></textarea>
           <button class="pdf-overlay-close" @click="showPdfOverlay = false">&times;</button>
         </div>
       </div>
@@ -309,7 +328,7 @@ function onRowContextMenu(row, event) {
   // You can implement custom logic here if needed
   event.preventDefault();
 }
-import { ref, onMounted, computed,onBeforeUnmount } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getTableData } from '@/api/tableDataService'
 import { getHighlightedPdfSection } from '@/api/localizationService'
@@ -573,9 +592,38 @@ function savePdfOverlayValue() {
   ) {
     pdfOverlayItem.value[pdfOverlayCol.value] = pdfOverlayValue.value
     pdfOverlayOriginalValue.value = pdfOverlayValue.value
-    // Optionally, trigger an API call to persist changes here
+    // Persist change to backend using the same API used by inline edits
+    // Prepare payload similarly to saveEdit
+    const queryId = route.params.query_id || route.params.count
+    const itemsArr = items.value && Array.isArray(items.value) ? items.value : mockItemsDisplay.value
+    const rowIdx = itemsArr ? itemsArr.findIndex(r => r === pdfOverlayItem.value) : null
+    const payload = {
+      query_id: queryId,
+      row_id: rowIdx,
+      col: pdfOverlayCol.value,
+      new_value: pdfOverlayValue.value
+    }
     // eslint-disable-next-line no-console
-    console.log('PDF overlay value saved:', pdfOverlayCol.value, pdfOverlayValue.value)
+    console.log('Sending PDF overlay update to backend:', payload)
+    import('@/api/tableDataService').then(module => {
+      if (module && module.updateTableCell) {
+        module.updateTableCell(payload)
+          .then(res => {
+            // eslint-disable-next-line no-console
+            console.log('PDF overlay update response:', res)
+            // close overlay after successful persist
+            showPdfOverlay.value = false
+          })
+          .catch(err => {
+            // eslint-disable-next-line no-console
+            console.error('PDF overlay update error:', err)
+            // keep overlay open so user can retry or cancel
+          })
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn('updateTableCell API not found in tableDataService')
+      }
+    })
   }
 }
 function findValue(row, col) {

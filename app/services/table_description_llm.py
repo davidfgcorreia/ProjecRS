@@ -1,4 +1,14 @@
-import openai # type: ignore
+"""
+Table description LLM service for ProjecRS backend.
+
+This module provides functions to format tabular data for LLM input and generate a markdown-formatted table description using the OpenAI API.
+It is used to automate the creation of concise, informative descriptions for tables in the application.
+
+Functions:
+    - format_table_for_llm: Format TableData as markdown for LLM input.
+    - get_table_description_llm: Generate table description using OpenAI GPT-4.1.
+"""
+import openai
 from app.models.table_data import TableData
 import os
 import logging
@@ -40,6 +50,7 @@ Given the following table, write a concise and informative description of its co
         max_tokens=256,
         temperature=0.7,
     )
-    description = response.choices[0].message.content.strip()
+    content = response.choices[0].message.content
+    description = content.strip() if content is not None else ""
     logging.debug(f"[LLM] Response from LLM:\n{description}")
     return description

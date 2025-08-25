@@ -1,28 +1,52 @@
+"""
+Table export utilities for ProjecRS backend.
+
+This module provides the export_table_file function to export tabular data in CSV, XLSX, PDF, and DOCX formats.
+It handles formatting, file naming, and compatibility for downstream use.
+
+Functions:
+    - export_table_file: Export table data for a given query_id and format (CSV, XLSX, PDF, DOCX).
+        * Handles header and cell formatting, file writing, and returns file bytes, MIME type, and filename.
+"""
 import io
 import csv
 from typing import Tuple
-from sqlalchemy.orm import Session # type: ignore
+from sqlalchemy.orm import Session
 from app.models.table_data import TableData
 import os
-import pandas as pd
 import logging
 
 def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[bytes, str, str]:
+    """
+    Export table data for a given query_id in the specified format.
+
+    Args:
+        db (Session): SQLAlchemy session for DB access.
+        query_id (str): Unique query identifier.
+        file_format (str): Export format ('csv', 'xlsx', 'pdf', 'docx').
+
+    Returns:
+        Tuple[bytes, str, str]: (file bytes, MIME type, filename)
+
+    Raises:
+        Exception: If table not found, empty, or format unsupported.
+    """
     logging.basicConfig(level=logging.DEBUG)
     table = db.query(TableData).filter(TableData.query_id == query_id).first()
     logging.debug(f"DEBUG export_table_file: query_id={query_id}, file_format={file_format}")
     logging.debug(f"DEBUG export_table_file: table={table}")
-    if not table or not table.columns_content:
+    columns_content = table.__dict__.get('columns_content', []) if table else []
+    if not table or not columns_content:
         logging.debug(f"DEBUG export_table_file: Table not found or columns_content empty for query_id={query_id}")
         raise Exception("Table not found or empty for this query_id")
     # Use column_titles if available, else fallback to row_ids or keys
     column_titles = getattr(table, 'column_titles', None)
     if column_titles and isinstance(column_titles, list):
         headers = column_titles
-    elif table.row_ids and isinstance(table.row_ids, list):
+    elif getattr(table, 'row_ids', None) is not None and isinstance(table.row_ids, list):
         headers = table.row_ids
     else:
-        first_row = table.columns_content[0]
+        first_row = columns_content[0]
         headers = list(first_row.keys())
     logging.debug(f"DEBUG export_table_file: headers={headers}")
     # Build rows as dicts: {header: value} for each row
@@ -45,12 +69,15 @@ def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[byt
             return str(header)
     flat_headers = [flatten_header(h) for h in headers]
     flat_headers = ["File"] + flat_headers  # Add "File" as the first column header
+    # Ensure we always have at least the File header
+    if not flat_headers:
+        flat_headers = ["File"]
     # Use original column names for headers
     # Filename will include 'Sistematic Revision {time}'
     from datetime import datetime
     now_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     dict_rows = []
-    for row in table.columns_content:
+    for row in columns_content:
         dict_row = {}
         # Always set the first column as 'File' (col0)
         dict_row[flat_headers[0]] = flatten_cell(row.get('col0', '-')) or '-'
@@ -85,31 +112,42 @@ def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[byt
         filename = f'Sistematic_Revision_{now_str}_{query_id}.csv'
     elif file_format == 'xlsx':
         file_path = f'Sistematic_Revision_{now_str}_{query_id}.xlsx'
-        import openpyxl
-        from openpyxl.styles import Alignment, Font
-        from openpyxl.utils import get_column_letter
-        wb: 'openpyxl.Workbook' = openpyxl.Workbook()  # type: ignore
-        ws: 'openpyxl.worksheet.worksheet.Worksheet' = wb.active  # type: ignore
+        try:
+            import openpyxl
+            from openpyxl.styles import Alignment, Font
+            from openpyxl.utils import get_column_letter
+            from openpyxl.workbook.workbook import Workbook as OpenpyxlWorkbook
+            from openpyxl.worksheet.worksheet import Worksheet as OpenpyxlWorksheet
+            from typing import cast
+        except ImportError as e:
+            raise Exception("openpyxl is required for XLSX export. Install with: pip install openpyxl") from e
+
+        wb: OpenpyxlWorkbook = openpyxl.Workbook()
+        ws: OpenpyxlWorksheet = cast(OpenpyxlWorksheet, wb.active)
+
         # Write header
         header_font = Font(bold=True)
         for col_idx, header in enumerate(flat_headers, start=1):
-            cell = ws.cell(row=1, column=col_idx, value=header)  # type: ignore
+            cell = ws.cell(row=1, column=col_idx, value=header)
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
         # Write data rows
         for row_idx, dict_row in enumerate(dict_rows, start=2):
             for col_idx, header in enumerate(flat_headers, start=1):
-                cell = ws.cell(row=row_idx, column=col_idx, value=dict_row.get(header, ''))  # type: ignore
+                cell = ws.cell(row=row_idx, column=col_idx, value=dict_row.get(header, ''))
                 cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
         # Auto-fit columns
         for col_idx, header in enumerate(flat_headers, start=1):
             max_length = len(str(header))
             for row_idx in range(2, len(dict_rows) + 2):
-                cell = ws.cell(row=row_idx, column=col_idx)  # type: ignore
+                cell = ws.cell(row=row_idx, column=col_idx)
                 if cell.value:
                     max_length = max(max_length, len(str(cell.value)))
             col_letter = get_column_letter(col_idx)
-            ws.column_dimensions[col_letter].width = max_length + 2  # type: ignore
+            ws.column_dimensions[col_letter].width = max_length + 2
+
         out_buf = io.BytesIO()
         wb.save(out_buf)
         data = out_buf.getvalue()
@@ -117,10 +155,13 @@ def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[byt
         filename = file_path
     elif file_format == 'pdf':
         # Generate a PDF using reportlab
-        from reportlab.lib.pagesizes import letter, landscape
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib import colors
-        from reportlab.lib.styles import getSampleStyleSheet
+        try:
+            from reportlab.lib.pagesizes import letter, landscape
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib import colors
+            from reportlab.lib.styles import getSampleStyleSheet
+        except ImportError as e:
+            raise Exception("reportlab is required for PDF export. Install with: pip install reportlab") from e
         pdf_buffer = io.BytesIO()
         doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(letter))
         elements = []
@@ -148,11 +189,14 @@ def export_table_file(db: Session, query_id: str, file_format: str) -> Tuple[byt
         mime = 'application/pdf'
         filename = f'Sistematic_Revision_{now_str}_{query_id}.pdf'
     elif file_format == 'docx':
-        from docx import Document
-        from docx.shared import Pt
-        from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-        from docx.oxml import OxmlElement
-        from docx.oxml.ns import qn
+        try:
+            from docx import Document
+            from docx.shared import Pt
+            from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+            from docx.oxml import OxmlElement
+            from docx.oxml.ns import qn
+        except ImportError as e:
+            raise Exception("python-docx is required for DOCX export. Install with: pip install python-docx") from e
         doc = Document()
         table_doc = doc.add_table(rows=1, cols=len(flat_headers))
         def set_cell_border(cell):

@@ -1,6 +1,21 @@
-from sqlalchemy import create_engine, Column, DateTime
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
-from datetime import datetime, timezone
+"""
+Database configuration and utilities for ProjecRS backend.
+
+This module sets up SQLAlchemy engines, session factories, and base model class for ORM.
+It supports both SQLite (default for local/testing) and PostgreSQL (production, via DATABASE_URL env var).
+
+Functions:
+    - get_db: FastAPI dependency for DB session management.
+    - hash_password: Securely hash user passwords.
+    - init_admin_user: Initialize default admin user if not present.
+
+Usage:
+    Import SessionLocal and Base in models/services.
+    Use get_db as a dependency in API routes.
+    Set DATABASE_URL to switch between SQLite and PostgreSQL.
+"""
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 import hashlib
 
@@ -19,7 +34,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=TestEngine)
 Base = declarative_base()
 
-upload_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
 
 def get_db():
     db = SessionLocal()
@@ -42,6 +57,3 @@ def init_admin_user():
             db.commit()
     finally:
         db.close()
-
-# Call this after tables are created
-# init_admin_user()  # <-- Remove or comment out this call to avoid circular import during Alembic operations

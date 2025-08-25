@@ -1,6 +1,7 @@
-"""
-Run LLM prompt (ChatGPT-4.1) on all markdown title files in the 'pdfs_titles' folder using the prompt in 'promts/promt_titles.txt'.
-Outputs results to 'output_file_tiles_promt_ai/ouput_titles.txt'.
+"""Run LLM prompts to suggest or rank titles for a paper.
+
+This module formats titles and sends them to the LLM prompting model used
+in the pipeline to decide which sections to extract.
 """
 import os
 import openai

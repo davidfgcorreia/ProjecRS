@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File # type: ignore
-from sqlalchemy.orm import Session # type: ignore
+"""
+Upload API endpoints for file upload and storage management.
+
+Defines routes for uploading files, validating uploads, and managing file storage.
+"""
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.services import file_storage
 from app.models.uploaded_file import UploadedFile
 from app.db import crud
-from app.schemas.uploaded_file import UploadedFileCreate, UploadedFileRead
+from app.schemas.uploaded_file import UploadedFileRead
 from uuid import uuid4
 
 router = APIRouter(prefix="/upload", tags=["upload"])

@@ -1,9 +1,15 @@
+"""Highlight or extract header values from markdown tables.
+
+Helpers to detect header rows and emphasize or extract important header
+values for downstream processing or display.
+"""
+
 # Standard library imports
 import os
 from pathlib import Path
 from typing import List, Optional
-import fitz  # PyMuPDF # type: ignore
-import openai #type: ignore
+import fitz 
+import openai 
 
 # --- CONFIGURATION ---
 DEFAULT_HEADER = "Region"

@@ -1,10 +1,10 @@
-"""
-Step 3: Run LLM prompt (ChatGPT-4.1) on all markdown table files in the 'tables' folder using the prompt in 'promts/promt_tables.txt'.
-Outputs results to 'output_file_promt_ai/ouput_indexs.txt'.
+"""Run debug LLM prompt flow for tables (typo-preserving legacy name).
+
+Contains helper `run_chatgpt41` used by the pipeline in debug mode.
 """
 import os
-import openai # type: ignore
-import tiktoken # type: ignore
+import openai
+import tiktoken
 import time
 
 

@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, Response # type: ignore
-from sqlalchemy.orm import Session # type: ignore
+"""
+Download API endpoints for exporting and downloading files in various formats.
+
+Defines routes for downloading table data as CSV, XLSX, PDF, DOCX, etc.
+"""
+from fastapi import APIRouter, Depends, Query, HTTPException, Response
+from sqlalchemy.orm import Session 
 from app.db.database import get_db
 from app.models.table_data import TableData
 from app.services.table_export import export_table_file
 import logging
-from typing import Optional
 
 router = APIRouter()
 
@@ -27,7 +31,7 @@ def download_table_file(
     if not table:
         logging.debug(f"DEBUG download API: Table not found for query_id={query_id}. All IDs: {all_ids}")
         raise HTTPException(status_code=404, detail=f"Table not found for this query_id. All IDs: {all_ids}")
-    if not table.columns_content:
+    if not getattr(table, "columns_content", None):
         logging.debug(f"DEBUG download API: columns_content is empty for query_id={query_id}")
         raise HTTPException(status_code=404, detail=f"Table columns_content is empty for query_id={query_id}")
     try:

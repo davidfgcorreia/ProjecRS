@@ -1,3 +1,16 @@
+<!--
+RegisterView.vue
+
+Purpose:
+- User registration page. Collects required user details and calls the
+  `userService` registration endpoint. On success, optionally signs the user
+  in and redirects to the upload flow.
+
+Key responsibilities:
+- Validate input data, show clear validation messages, and handle server
+  errors gracefully.
+-->
+
 <template>
   <div class="register-bg">
     <div class="register-card-centered">

@@ -1,3 +1,9 @@
+"""Helpers to remove temporary workspace content safely.
+
+Used by tests and cleanup steps to remove a query's temporary storage
+with care to avoid deleting shared resources.
+"""
+
 import openai
 import os
 

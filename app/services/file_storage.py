@@ -1,3 +1,17 @@
+"""
+File storage utilities for ProjecRS backend.
+
+This module provides functions to save and retrieve PDFs, results, and reports in the backend storage directory.
+It ensures unique filenames using UUIDs and organizes files by type for easy access.
+
+Functions:
+    - save_pdf: Save uploaded PDF files with unique, descriptive filenames.
+    - save_result: Save binary result files with unique names.
+    - save_report: Save text report files with unique names.
+    - get_pdf_path: Get the full path to a stored PDF file.
+    - get_result_path: Get the full path to a stored result file.
+    - get_report_path: Get the full path to a stored report file.
+"""
 import os
 from fastapi import UploadFile
 from uuid import uuid4

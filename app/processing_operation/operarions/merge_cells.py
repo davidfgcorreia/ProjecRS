@@ -1,3 +1,9 @@
+"""Helpers to merge adjacent table cells when appropriate.
+
+Used during post-processing to merge cells with the same content or when
+cells logically belong together across adjacent columns/rows.
+"""
+
 def merge_cells_in_column(table, col_key, row_idx1, row_idx2):
     rows = table.columns_content
     hi = max(row_idx1, row_idx2)
@@ -9,7 +15,12 @@ def merge_cells_in_column(table, col_key, row_idx1, row_idx2):
     display_hi = cell_hi.get("display", "")
     meta_lo = cell_lo.get("meta", "")
     meta_hi = cell_hi.get("meta", "")
-    merged_display = display_lo if display_lo == display_hi else f"{display_lo} , {display_hi}" if display_lo and display_hi else display_lo or display_hi
+    # When both display values exist, keep both separated by a comma
+    # (do not collapse identical values into a single one).
+    if display_lo and display_hi:
+        merged_display = f"{display_lo}, {display_hi}"
+    else:
+        merged_display = display_lo or display_hi
     merged_meta = ", ".join(filter(None, set(str(meta_lo).split(",") + str(meta_hi).split(","))))
     rows[lo][col_key] = {"display": merged_display, "meta": merged_meta}
     rows[hi][col_key] = {"display": "", "meta": None}  # Clear hi cell

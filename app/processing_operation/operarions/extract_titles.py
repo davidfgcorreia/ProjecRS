@@ -14,10 +14,7 @@ import os
 import glob
 import re
 
-DEFAULT_INPUT_DIR = "/root/documnetos/Estagio/projeto/feature_markdown/storage/markdown"
-DEFAULT_OUTPUT_DIR = "/root/documnetos/Estagio/projeto/feature_markdown/storage/pdfs_titles"
-
-def extract_titles_with_content(input_dir=DEFAULT_INPUT_DIR, output_dir=DEFAULT_OUTPUT_DIR):
+def extract_titles_with_content(input_dir, output_dir):
     """
     Extracts all candidate titles from markdown files:
     - Any line starting with '#' is a candidate title.
@@ -141,7 +138,7 @@ def extract_titles_with_content(input_dir=DEFAULT_INPUT_DIR, output_dir=DEFAULT_
                 out_f.write(title + '\n')
 
 def main():
-    extract_titles_with_content()
+    extract_titles_with_content(input_dir="../storage/markdown", output_dir="../storage/pdfs_titles")
 
 if __name__ == "__main__":
     main()

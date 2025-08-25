@@ -1,3 +1,9 @@
+"""Detect and extract empty or missing index entries from parsed outputs.
+
+Used to find rows or table indexes that lack content and write them to an
+output location for manual review or further processing.
+"""
+
 import os
 from pathlib import Path
 

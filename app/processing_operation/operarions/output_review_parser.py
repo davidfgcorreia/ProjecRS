@@ -1,7 +1,8 @@
 """
-Script to review and correct the parsed output file format for medical study tables.
-If the file is not in the correct format (e.g., missing double brackets for branch keys),
-it will rewrite the file with the correct format.
+Parse LLM output/inspection files to structured intermediate formats.
+
+Used to read text outputs produced by LLM prompts and transform them into
+structured index files for downstream parsing.
 """
 import re
 from pathlib import Path

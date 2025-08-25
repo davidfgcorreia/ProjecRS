@@ -1,5 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException # type: ignore
-from sqlalchemy.orm import Session # type: ignore
+"""
+User API endpoints for authentication, registration, and user management.
+
+Defines routes for login, registration, profile, and user CRUD operations.
+"""
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead

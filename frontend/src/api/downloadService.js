@@ -1,3 +1,13 @@
+/*
+Frontend API: downloadService.js
+
+Purpose:
+- Helpers to download exported files from the backend (CSV, XLSX, DOCX, PDF).
+- Centralizes responseType and browser download logic so components call a simple function.
+
+Exports:
+- downloadTableFile({ format, queryId })
+*/
 // API service for downloading table files
 import axios from 'axios'
 

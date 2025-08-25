@@ -1,3 +1,9 @@
+"""
+Model definition for file-based queries (future feature).
+
+This file is a placeholder for a model that will represent queries made on uploaded files.
+Not used in the current version.
+"""
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.database import Base

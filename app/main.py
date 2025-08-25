@@ -1,6 +1,19 @@
-from fastapi import FastAPI # type:ignore
-from dotenv import load_dotenv # type:ignore
-from fastapi.middleware.cors import CORSMiddleware # type:ignore
+"""
+Main entry point for the ProjecRS FastAPI backend.
+
+This file sets up the FastAPI application, configures CORS, loads environment variables, and includes all API routers.
+It also ensures the database is initialized and the admin user exists on startup.
+
+Routers included:
+    - user, upload, result, table_data, localization, highlight_header, download
+
+Usage:
+    Run with: uvicorn app.main:app --reload
+    Set environment variables as needed (e.g., DATABASE_URL)
+"""
+from fastapi import FastAPI 
+from dotenv import load_dotenv 
+from fastapi.middleware.cors import CORSMiddleware 
 from app.api import user
 from app.api import upload
 from app.api import result
@@ -10,7 +23,7 @@ from app.api import highlight_header
 from app.api import download
 from app.db.database import Base, engine, init_admin_user
 import time
-from sqlalchemy.exc import OperationalError # type: ignore
+from sqlalchemy.exc import OperationalError 
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -36,7 +49,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Para produção, especifique o domínio do frontend
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

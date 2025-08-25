@@ -1,3 +1,9 @@
+"""High-level table processing utilities for markdown tables.
+
+Includes routines to further clean, normalize and postprocess tables ready
+for final markdown rendering and export.
+"""
+
 import os
 import re
 import requests

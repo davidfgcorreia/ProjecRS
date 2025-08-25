@@ -1,7 +1,8 @@
-"""
-Base script to generate a markdown table from a key-value text file with branch notation.
-This script reads the input file, extracts headers (indexes), and prepares for table generation.
-You can implement the row/branch logic as needed.
+"""Generate a cleaned markdown table from merged values.
+
+This module converts merged table values into a clean markdown table with
+consistent headers and cell formatting ready for downstream rendering or
+LLM prompts.
 """
 from pathlib import Path
 import re

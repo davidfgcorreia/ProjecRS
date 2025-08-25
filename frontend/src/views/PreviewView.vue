@@ -1,3 +1,15 @@
+<!--
+PreviewView.vue
+
+Purpose:
+- Offer a final preview of the generated table and export options (CSV, XLSX,
+  DOCX, PDF). Users can review and trigger exports from this screen.
+
+Key responsibilities:
+- Render a read-only preview of the finalized table and metadata.
+- Expose export/download actions and small settings (format, styling).
+-->
+
 <template>
   <div class="preview-bg">
     <div class="stepper">

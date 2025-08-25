@@ -1,3 +1,19 @@
+"""
+CRUD utilities for User model in ProjecRS backend.
+
+This module provides functions to create, read, update, and delete User records in the database.
+It uses SQLAlchemy ORM and is intended to be used by API routes and services.
+
+Functions:
+    - hash_password: Securely hash user passwords.
+    - get_user: Retrieve a user by ID.
+    - get_user_by_email: Retrieve a user by email.
+    - get_user_by_email_and_password: Authenticate user by email and password.
+    - get_users: List users with pagination.
+    - create_user: Add a new user to the database.
+    - update_user: Update user details.
+    - delete_user: Remove a user from the database.
+"""
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.user import UserCreate

@@ -1,3 +1,9 @@
+"""Parse output index files into per-paper parsed representations.
+
+Transforms raw LLM output index files into parsed tables that can be
+merged and post-processed.
+"""
+
 import os
 import re
 

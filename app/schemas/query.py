@@ -1,3 +1,13 @@
+"""Schemas for query-related API payloads.
+
+This module defines Pydantic models used for creating and returning query
+records. These schemas are used by the API routers to validate incoming data
+and to serialize responses.
+
+Models:
+- Query: basic representation of a query entity exposed via the API.
+"""
+
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional

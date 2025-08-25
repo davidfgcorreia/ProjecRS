@@ -1,3 +1,9 @@
+"""Merge logic for combining multiple columns into single logical columns.
+
+Provides functions to merge related numeric/text columns after parsing and
+prior to generating cleaned output tables.
+"""
+
 def merge_columns(table, col1, col2):
     """
     Merge two columns in the table for a given query_id and return the updated table.

@@ -1,5 +1,11 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text # type: ignore
-from sqlalchemy.orm import relationship # type: ignore
+"""
+Model definition for query metadata (future feature).
+
+This file is a placeholder for a model that will represent metadata and structure for queries.
+Not used in the current version.
+"""
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.db.database import Base
 

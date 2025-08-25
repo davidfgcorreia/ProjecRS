@@ -1,3 +1,9 @@
+"""Parser for the second index format produced by earlier pipeline steps.
+
+Provides utilities to read the `ouput_indexs.txt` style files and write
+structured parsed outputs to a target directory.
+"""
+
 import os
 import re
 

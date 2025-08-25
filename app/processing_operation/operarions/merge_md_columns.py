@@ -1,9 +1,13 @@
+"""Merge columns inside markdown tables according to heuristics.
+
+Transforms markdown table structures to combine columns when they represent
+sub-parts of a single logical field.
+"""
+
 """
 Merge specified columns in markdown tables.
 Given a directory containing markdown tables, merges the indicated columns in each table, placing their values in the same cell separated by ',' and updating the header accordingly.
 """
-import os
-from pathlib import Path
 
 def merge_columns_in_md_file(input_file, output_file, columns_to_merge):
     """

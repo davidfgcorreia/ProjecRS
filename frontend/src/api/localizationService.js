@@ -1,4 +1,13 @@
-// frontend/src/api/localizationService.js
+/*
+Frontend API: localizationService.js
+
+Purpose:
+- Helpers to call localization-related backend endpoints (PDF section highlighting,
+  localization maps, etc.).
+
+Exports:
+- getHighlightedPdfSection(queryId, userId, marker)
+*/
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';

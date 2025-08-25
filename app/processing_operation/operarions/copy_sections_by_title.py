@@ -1,13 +1,19 @@
+"""Copy selected sections from markdown files based on title lists.
+
+This module provides utilities to read ordered title lists and extract the
+matching sections from markdown documents, producing per-file markdowns with
+only the chosen sections.
+
+Main functions:
+- read_titles(path) -> list[str]
+- read_markdown(path) -> list[str]
+- find_sections(lines, titles, all_titles_set, pdf_titles=None) -> list[(title,start,end)]
 """
-Copy sections from markdown files to new markdown files, in the order specified by a list of titles for each file.
-- Reads titles from parsed_titles/*.txt (one per line, in desired order)
-- Reads the full markdown from storage/markdown/{basename}/{basename}.md
-- For each title, finds the corresponding section and copies its content (excluding images and tables) to a new markdown file, preserving formatting.
-- Output: storage/coyed_section_by_file/{basename}_selected_sections.md
-"""
+
+
 import re
 from pathlib import Path
-from rapidfuzz import fuzz # type: ignore
+from rapidfuzz import fuzz
 
 def read_titles(titles_path):
     with open(titles_path, 'r', encoding='utf-8') as f:

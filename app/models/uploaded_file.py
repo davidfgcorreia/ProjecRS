@@ -1,3 +1,9 @@
+"""
+Model definition for uploaded files (future feature).
+
+This file is a placeholder for a model that will represent uploaded files and their metadata.
+Not used in the current version.
+"""
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone

@@ -1,9 +1,15 @@
-# This script will copy all tables (and their titles, if present) from all markdown files in the input directory
-# and return a single markdown file with all tables concatenated, preserving their original formatting.
+"""Gather tables from many markdown files into a single markdown output.
+
+This module finds markdown tables across a directory tree and concatenates
+them into a single markdown file. It preserves titles and short
+surrounding descriptions when present.
+
+Main functions:
+- load_markdown_files(md_dir) -> dict[path, content]
+- copy_all_tables_to_single_md(md_dir, output_md_path, debug=False)
+"""
 
 import os
-import re
-
 
 def load_markdown_files(md_dir):
     """

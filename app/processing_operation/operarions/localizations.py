@@ -1,4 +1,9 @@
-import re
+"""Localization helpers to extract and apply localization maps for tables.
+
+This module helps extract localization keys from parsed outputs and create
+mapping files used to normalize values across different languages or formats.
+"""
+
 import json
 from pathlib import Path
 

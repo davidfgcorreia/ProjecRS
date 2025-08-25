@@ -1,4 +1,9 @@
-from fastapi import APIRouter, HTTPException, Response # type: ignore
+"""
+Highlight Header API endpoints for highlighting header values in documents.
+
+Defines routes for processing PDFs and marking header values for review or extraction.
+"""
+from fastapi import APIRouter, HTTPException, Response
 from pathlib import Path
 import os
 import logging

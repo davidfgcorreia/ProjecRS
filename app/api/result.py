@@ -1,5 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException # type: ignore
-from sqlalchemy.orm import Session # type: ignore
+"""
+Result API endpoints for retrieving and managing query results.
+
+Defines routes for accessing, filtering, and exporting results of queries.
+"""
+from fastapi import APIRouter, Depends, HTTPException 
+from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.query import Query
 from app.models.query_file import QueryFile

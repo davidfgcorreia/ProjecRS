@@ -1,3 +1,20 @@
+<!--
+ChooseTableView.vue
+
+Purpose:
+- Presents the UI where users select which extracted tables/indexes to include
+  in the final dataset. Contains the stepper and table selection controls used
+  during the processing flow.
+
+Key responsibilities:
+- Render selectable list of tables produced by the extraction pipeline.
+- Allow users to pick indexes.
+
+Notes:
+- Keep business logic in the view's script section; UI-only helpers belong in
+  small composables or services under `frontend/src/api`.
+-->
+
 <template>
   <div class="choose-table-bg">
     <LoadingScreen v-if="isSubmitting" />

@@ -1,3 +1,9 @@
+"""Preprocess merged values to remove redundant branch text and normalize values.
+
+This step reduces noise by removing branch-like annotations and normalizing
+repeated values across rows/columns before generating final markdown.
+"""
+
 import re
 def preprocess_step_label_identifiers_with_branch(lines):
     """

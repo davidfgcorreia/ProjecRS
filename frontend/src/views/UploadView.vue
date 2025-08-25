@@ -1,3 +1,14 @@
+<!--
+UploadView.vue
+
+Purpose:
+- Accepts file uploads (PDF) from the user. Shows upload progress and basic validation.
+
+Key responsibilities:
+- Validate file types and sizes, call the upload API, and navigate to the
+  ChooseTable view.
+-->
+
 <template>
   <div class="upload-bg">
     <div class="upload-layout">

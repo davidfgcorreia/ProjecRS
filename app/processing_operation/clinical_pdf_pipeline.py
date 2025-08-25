@@ -1,14 +1,63 @@
-import re
-import json
+
+"""Clinical PDF processing pipeline.
+
+This module implements a multi-step pipeline used to convert uploaded PDF
+papers into cleaned, merged markdown tables suitable for downstream
+annotation and LLM prompting. The pipeline is intentionally modular — each
+step writes intermediate artifacts into the provided `root_storage` workspace
+so the process can be debugged or re-run from an intermediate stage.
+
+Main functionality
+------------------
+- copy_query_to_markdowns(temp_query_dir, markdowns_root, user_id, paper_title)
+    Copies a temporary markdown workspace into the persistent `markdowns/`
+    directory under a user-scoped folder (markdowns/{user_id}/{paper_title}).
+
+- pipeline(generatemd=False, root_storage=None, debug=False, user_id=None)
+    Orchestrates the full processing flow for a single query workspace. It
+    optionally converts PDFs to markdown, extracts tables, runs LLM prompts
+    (or debug variants), parses outputs, merges and postprocesses results,
+    and finally returns a compact representation of merged headers and
+    items suitable for the application's `TableData` storage format.
+
+Inputs and outputs
+------------------
+- root_storage (str): Path to a temporary workspace for this query. The
+    pipeline creates and reads subfolders beneath this root (pdfs, markdown,
+    tables, etc.). Must be provided and writable by the process user.
+- user_id (int): Numeric id of the user that owns the query. Used when
+    copying results into the persistent `markdowns/` area.
+- Returns: When successful the pipeline returns a dict with keys
+    `headers` (list) and `items` (list of rows). If the merged markdown
+    artifact is not present the function returns None.
+
+Notes and behavior
+------------------
+- Many intermediate files and directories are created under the provided
+    `root_storage` path; this makes debugging straightforward but requires
+    sufficient disk space.
+- The pipeline expects the `operarions` helpers to exist and to follow the
+    interface used below (for example `batch_convert_pdfs`, `process_all_subfolders`,
+    etc.). Errors in those modules will propagate and should be handled by
+    the caller if needed.
+
+Example usage::
+
+        result = pipeline(generatemd=True, root_storage='/tmp/query123', debug=False, user_id=42)
+        if result:
+                headers, items = result['headers'], result['items']
+
 """
-Pipeline for processing clinical trial PDFs with manual/automatic markdown generation.
-Steps:
-1. Generate markdown from PDFs (optional, --generatemd)
-2. Copy all tables to single markdown files
-3. Manual LLM prompt step (user input)
-"""
+
+from __future__ import annotations
+
 import os
-import argparse
+import json
+import shutil
+import logging
+from typing import Optional, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 from app.processing_operation.operarions.pdf_to_markdown import batch_convert_pdfs
 from app.processing_operation.operarions.copy_all_tables_to_single_md import process_all_subfolders
@@ -31,13 +80,18 @@ from app.processing_operation.operarions.md_table_to_js import parse_md_table
 from app.processing_operation.operarions.process_tables import main as process_markdown
 
 
-import shutil
-import time
+def copy_query_to_markdowns(temp_query_dir: str, markdowns_root: str, user_id: int, paper_title: str) -> None:
+    """Copy a temporary markdown workspace into the persistent markdowns area.
 
-def copy_query_to_markdowns(temp_query_dir, markdowns_root, user_id, paper_title):
-    """
-    Copies all files and directories from a temporary query markdown directory to the markdowns directory,
-    organized as markdowns/{user_id}/{paper_title}/, preserving the directory structure.
+    The function preserves the directory structure for the paper under
+    `markdowns/{user_id}/{paper_title}`. Existing destination folders are
+    removed before copying to ensure a clean overwrite.
+
+    Args:
+        temp_query_dir: Path to the temporary markdown directory to copy.
+        markdowns_root: Root path where user markdowns are stored.
+        user_id: Numeric id of the user (used to create the owner directory).
+        paper_title: Title (used as the directory name) of the paper being copied.
     """
     dest_dir = os.path.join(markdowns_root, str(user_id), paper_title)
     os.makedirs(dest_dir, exist_ok=True)
@@ -52,9 +106,29 @@ def copy_query_to_markdowns(temp_query_dir, markdowns_root, user_id, paper_title
             shutil.copytree(src_path, dest_path)
         else:
             shutil.copy2(src_path, dest_path)
+    logger.info("Copied all contents from %s to %s", temp_query_dir, dest_dir)
     print(f"Copied all contents from {temp_query_dir} to {dest_dir}")
 
-def pipeline(generatemd=False, root_storage=None , debug=False, user_id=None):
+def pipeline(generatemd: bool = False, root_storage: Optional[str] = None, debug: bool = False, user_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """Orchestrate the end-to-end clinical PDF -> merged markdown pipeline.
+
+    Args:
+        generatemd: If True, convert PDFs to markdown even if existing
+            markdown files are not present.
+        root_storage: Path to the temporary workspace created for this
+            query. The function will read/write subdirectories under this
+            path (pdfs, markdown, tables, etc.). Must be provided.
+        debug: When True, runs debug variants of LLM prompts and writes
+            outputs to debug-named directories to avoid overwriting normal
+            outputs.
+        user_id: Numeric id of the user owning the query. Required so the
+            pipeline can copy artifacts to the persistent `markdowns/`
+            directory for the user.
+
+    Returns:
+        A dict with keys `headers` and `items` representing the merged
+        markdown table content, or None if the merged artifact is absent.
+    """
 
     if root_storage is None:
         raise ValueError("root_storage must not be None")

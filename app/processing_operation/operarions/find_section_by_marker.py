@@ -1,3 +1,9 @@
+"""Find a section in a markdown document using explicit markers.
+
+Simple helper to locate a block delimited by marker strings or header
+patterns. Useful for deterministic section extraction when markers exist.
+"""
+
 # Standard library imports
 import re
 import os
@@ -7,9 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 # Third-party imports
-import fitz  # PyMuPDF # type: ignore
-from fpdf import FPDF # type: ignore
-from rapidfuzz import fuzz # type: ignore
+import fitz
 
 def normalize(text):
     if not text:
@@ -41,7 +45,7 @@ def extract_sections_with_marker(pdf_path: str, marker: str, localization_value:
     # 2. Use PyMuPDF's search_for to find the best substring match in the PDF
     print(f"[DEBUG] Searching entire PDF for best substring matches of localization value: {localization_value}")
 
-    doc = fitz.open(pdf_path)  # type: ignore[reportAttributeAccessIssue]
+    doc = fitz.open(pdf_path) 
     if not localization_value:
         print("[WARN] No localization value provided for PDF search.")
         return
@@ -131,9 +135,9 @@ def extract_sections_with_marker(pdf_path: str, marker: str, localization_value:
     else:
         output_pdf_path = str(Path(pdf_path).with_name(f"{Path(pdf_path).stem}_section_highlighted.pdf"))
     print(f"[DEBUG] Output PDF path: {output_pdf_path}")
-    new_doc = fitz.open()  # type: ignore[reportAttributeAccessIssue]
+    new_doc = fitz.open()  
     for pno in pages_to_copy:
-        new_doc.insert_pdf(doc, from_page=pno, to_page=pno)  # type: ignore[reportAttributeAccessIssue]
+        new_doc.insert_pdf(doc, from_page=pno, to_page=pno)  
         print(f"[DEBUG] Copied page {pno} to new PDF")
 
     # Highlight all best matches in the new PDF
@@ -141,14 +145,14 @@ def extract_sections_with_marker(pdf_path: str, marker: str, localization_value:
         if match['page'] in pages_to_copy:
             page_idx = pages_to_copy.index(match['page'])
             page = new_doc[page_idx]
-            highlight = page.add_highlight_annot(match['rect'])  # type: ignore[reportAttributeAccessIssue]
-            highlight.update()  # type: ignore[reportAttributeAccessIssue]
+            highlight = page.add_highlight_annot(match['rect'])
+            highlight.update()
             print(f"[DEBUG] Highlighted match on page {page_idx}")
 
     # Summary page and hyperlinks removed as requested
 
     print(f"[DEBUG] Saving output PDF to {output_pdf_path}")
-    new_doc.save(output_pdf_path)  # type: ignore[reportAttributeAccessIssue]
+    new_doc.save(output_pdf_path)
     print(f"[INFO] Section-highlighted PDF written to {output_pdf_path}")
 
 

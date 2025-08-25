@@ -1,13 +1,16 @@
+/*
+Frontend API: highlightHeaderService.js
+
+Purpose:
+- Request a PDF from the backend with header values highlighted.
+
+Exports:
+- getHighlightedHeaderPdf(queryId, header, pdfName)
+*/
 import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-/**
- * Request a PDF with highlighted header values from the backend.
- * @param {string} queryId - The query ID (string/UUID)
- * @param {string} header - The header name to highlight
- * @returns {Promise<Blob>} - PDF blob
- */
 /**
  * Request a PDF with highlighted header values from the backend.
  * @param {string} queryId - The query ID (string/UUID)
