@@ -174,53 +174,111 @@ def main(pdf_dir: str, md_dir: str, marker: str, output_pdf: str, json_path: Opt
         with open(json_path, 'r', encoding='utf-8') as jf:
             print(f"[DEBUG] Loading localization map from {json_path}")
             loc_map = json.load(jf)
-        # Try to match marker as @@loc_x@@ or loc_x
-        marker_key = marker.strip('@')
-        file_name = None
-        localization_value = None
-        print(f"[DEBUG] marker_key={marker_key}")
-        # 1. Direct key match (loc_x)
-        if marker_key in loc_map and 'file' in loc_map[marker_key]:
-            file_name = loc_map[marker_key]['file']
-            localization_value = loc_map[marker_key].get('localization')
-            print(f"[DEBUG] Found direct key match: file_name={file_name}, localization_value={localization_value}")
-        # 2. @@loc_x@@ match
-        if not file_name:
-            for k, v in loc_map.items():
-                if ('@@' + k + '@@') == marker and 'file' in v:
-                    file_name = v['file']
-                    localization_value = v.get('localization')
-                    print(f"[DEBUG] Found @@loc_x@@ match: file_name={file_name}, localization_value={localization_value}")
-                    break
-        # 3. Fallback: search in localization value
-        if not file_name:
-            for v in loc_map.values():
-                if 'localization' in v and marker in v['localization'] and 'file' in v:
-                    file_name = v['file']
-                    localization_value = v.get('localization')
-                    print(f"[DEBUG] Found fallback localization match: file_name={file_name}, localization_value={localization_value}")
-                    break
-        if not file_name:
-            print(f"[ERROR] Marker {marker} not found in localization map.")
+        # Support multiple marker elements (comma/semicolon/pipe separated) and do not override
+        # the output PDF when multiple markers are provided. For each marker element we resolve
+        # the target PDF and localization value from the map and run extraction into a
+        # temporary PDF. At the end we merge all temporary PDFs into `output_pdf`.
+        markers = [m.strip() for m in re.split(r'[,;|]\s*', marker) if m.strip()]
+        if not markers:
+            print(f"[ERROR] No marker elements parsed from marker string: {marker}")
             return
-        # Compose the PDF file path
-        pdf_stem = Path(file_name).stem
-        pdf_file_path = os.path.join(pdf_dir, pdf_stem +  '.pdf')
-        print(f"[DEBUG] Composed PDF file path: {pdf_file_path}")
-        if not os.path.exists(pdf_file_path):
-            print(f"[ERROR] PDF file does not exist: {pdf_file_path}")
+
+        # Build a list of extraction jobs: (pdf_file_path, marker_element, localization_value)
+        jobs = []
+        for mk in markers:
+            mk_key = mk.strip('@')
+            file_name = None
+            loc_value = None
+            # direct key
+            if mk_key in loc_map and 'file' in loc_map[mk_key]:
+                file_name = loc_map[mk_key]['file']
+                loc_value = loc_map[mk_key].get('localization')
+                print(f"[DEBUG] Marker '{mk}' direct match -> file={file_name}")
+            # @@loc_x@@ style
+            if not file_name:
+                for k, v in loc_map.items():
+                    if ('@@' + k + '@@') == mk and 'file' in v:
+                        file_name = v['file']
+                        loc_value = v.get('localization')
+                        print(f"[DEBUG] Marker '{mk}' @@match -> file={file_name}")
+                        break
+            # fallback: search inside localization text
+            if not file_name:
+                for v in loc_map.values():
+                    if 'localization' in v and mk in v['localization'] and 'file' in v:
+                        file_name = v['file']
+                        loc_value = v.get('localization')
+                        print(f"[DEBUG] Marker '{mk}' fallback localization -> file={file_name}")
+                        break
+            if not file_name:
+                print(f"[WARN] Marker element '{mk}' not found in localization map; skipping.")
+                continue
+            pdf_stem = Path(file_name).stem
+            pdf_file_path = os.path.join(pdf_dir, pdf_stem + '.pdf')
+            if not os.path.exists(pdf_file_path):
+                print(f"[WARN] PDF file {pdf_file_path} for marker '{mk}' does not exist; skipping.")
+                continue
+            # verify markdown exists (best-effort)
+            md_path1 = os.path.join(md_dir, pdf_stem, pdf_stem + '.md')
+            if not os.path.exists(md_path1):
+                print(f"[WARN] Markdown file {md_path1} missing for '{mk}'; continuing (extraction may still work)")
+            jobs.append((pdf_file_path, mk, loc_value))
+
+        if not jobs:
+            print("[ERROR] No valid extraction jobs could be constructed from markers.")
             return
-        # Try both .md and .txt.md for the markdown file
-        md_path1 = os.path.join(md_dir, pdf_stem, pdf_stem + '.md')
-        if os.path.exists(md_path1):
-            chosen_md_path = md_path1
-        else:
-            print(f"[ERROR] Markdown file does not exist: {md_path1}")
+
+        # If only one job, let the extractor write directly to the requested output
+        if len(jobs) == 1:
+            pdf_file_path, mk, loc_value = jobs[0]
+            extract_sections_with_marker(pdf_file_path, mk, loc_value, output_pdf)
             return
-        print(f"[DEBUG] Using Markdown file: {chosen_md_path}")
-        json_path_md = os.path.join(md_dir, pdf_stem, pdf_stem + '_meta.json')
-        print(f"[DEBUG] json_path_md: {json_path_md}")
-        extract_sections_with_marker(pdf_file_path, marker, localization_value, output_pdf)
+
+        # Multiple jobs: run each extraction into a temp file and merge
+        import tempfile, shutil
+        tmpdir = tempfile.mkdtemp(prefix="find_section_")
+        merged_doc = fitz.open()
+        try:
+            for idx, (pdf_file_path, mk, loc_value) in enumerate(jobs):
+                tmp_out = os.path.join(tmpdir, f"{Path(output_pdf).stem}_{idx}.pdf")
+                print(f"[DEBUG] Running extraction for marker '{mk}' -> {tmp_out}")
+                try:
+                    extract_sections_with_marker(pdf_file_path, mk, loc_value, tmp_out)
+                except Exception as e:
+                    print(f"[WARN] extract_sections_with_marker raised for marker '{mk}': {e}")
+                    continue
+                if os.path.exists(tmp_out):
+                    try:
+                        tmp_doc = fitz.open(tmp_out)
+                        merged_doc.insert_pdf(tmp_doc)
+                        tmp_doc.close()
+                        print(f"[DEBUG] Appended {tmp_out} ({merged_doc.page_count} pages total)")
+                    except Exception as e:
+                        print(f"[WARN] Could not append temp PDF {tmp_out}: {e}")
+                else:
+                    print(f"[WARN] No output produced for marker '{mk}' (expected {tmp_out})")
+
+            if merged_doc.page_count == 0:
+                print(f"[ERROR] No pages were produced for any marker; nothing to write to {output_pdf}")
+                return
+            # Reverse page order in the final output as requested: create a new PDF
+            reversed_doc = fitz.open()
+            try:
+                for p in range(merged_doc.page_count - 1, -1, -1):
+                    reversed_doc.insert_pdf(merged_doc, from_page=p, to_page=p)
+                reversed_doc.save(output_pdf)
+                print(f"[INFO] Merged (reversed) output written to {output_pdf} ({reversed_doc.page_count} pages)")
+            finally:
+                try:
+                    reversed_doc.close()
+                except Exception:
+                    pass
+        finally:
+            try:
+                merged_doc.close()
+            except Exception:
+                pass
+            shutil.rmtree(tmpdir, ignore_errors=True)
     else:
         print(f"[DEBUG] {pdf_dir} is not a directory. Using as PDF path.")
         # If not a directory, user must provide all paths

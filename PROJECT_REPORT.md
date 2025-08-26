@@ -27,9 +27,6 @@ Checklist (start here):
 - [ ] Add robust error handling around optional third-party libraries (PyMuPDF, tiktoken, rapidfuzz). Fail gracefully with informative messages and install-time notes.
 - [ ] Fix lint / type definition missing files (dev tooling complaining about `.vue-global-types`); add dev dependencies or ignore patterns for CI.
 - [ ] Add tests for critical paths: table cell update, upload pipeline, merge operations and an end-to-end processing smoke test.
-
-- [ ] Fix localization getter bug: some keys return an error or empty value when calling the project's "get_localization" / "get_localized_value" helper (missing fallback or incorrect lookup order). Reproduce: request a localized string for a non-existent key or for a locale not present and observe a KeyError/500 or empty response; fix by making lookups safe, adding default fallback locale, and returning a clear placeholder when value is missing.
-
 ---
 
 ## 2) Components needed for deployment (minimal production configuration)
