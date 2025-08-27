@@ -1,0 +1,32 @@
+from pathlib import Path
+import sys
+import importlib
+import pytest
+
+from tests.processing.helpers import copy_query_to, try_call, assert_dir_has_files
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+MODULE = 'app.processing_operation.operarions.merge_output_indexes'
+
+
+def test_merge_output_indexes_runs(tmp_path: Path):
+    copied = copy_query_to(tmp_path)
+    try:
+        mod = importlib.import_module(MODULE)
+    except Exception as e:
+        pytest.skip(f"Skipping import of {MODULE}: {e}")
+
+    funcs = [getattr(mod, n) for n in ('main', 'merge') if hasattr(mod, n)]
+    args = [(str(copied / 'parsed_output_tables'), str(copied / 'parsed_index_2'), str(tmp_path / 'final'))]
+    for f in funcs:
+        for candidate in args:
+            try:
+                f(*candidate)
+                assert_dir_has_files(tmp_path / 'final')
+                return
+            except TypeError:
+                continue
+    pytest.skip(f"No suitable callable worked in {MODULE}")

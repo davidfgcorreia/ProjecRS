@@ -1,0 +1,27 @@
+{
+  "loc_1": {
+    "key": "year",
+    "localization": "© 2019 The Authors. British Journal of Dermatology published by John Wiley & Sons Ltd on behalf of British Association of Dermatologists.",
+    "file": "Bissonnette 2019.txt"
+  },
+  "loc_2": {
+    "key": "intervention-name",
+    "localization": "ASN002 20 mg, ASN002 40 mg, ASN002 80 mg",
+    "file": "Bissonnette 2019.txt"
+  },
+  "loc_3": {
+    "key": "intervention-dosage",
+    "localization": "ASN002 20 mg, n = 9",
+    "file": "Bissonnette 2019.txt"
+  },
+  "loc_4": {
+    "key": "intervention-dosage",
+    "localization": "ASN002 40 mg, n = 9",
+    "file": "Bissonnette 2019.txt"
+  },
+  "loc_5": {
+    "key": "intervention-dosage",
+    "localization": "ASN002 80 mg, n = 9",
+    "file": "Bissonnette 2019.txt"
+  }
+}

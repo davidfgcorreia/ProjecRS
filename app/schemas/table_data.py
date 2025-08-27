@@ -36,12 +36,10 @@ class TableDataBase(BaseModel):
     row_ids: List[str]
     # List of dicts, each dict: {col0: {display, meta}, ...}
     columns_content: Optional[List[Dict[str, TableCell]]] = Field(default=None, description="List of table rows, each as dict of colX: TableCell")
-
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            TableCell: lambda v: v.dict() if isinstance(v, TableCell) else v
-        }
+    # Pydantic v2: use model_config instead of class Config
+    # The previous json_encoders that converted TableCell to dict are not required
+    # because TableCell is a BaseModel and will serialize correctly in v2.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class TableDataCreate(TableDataBase):

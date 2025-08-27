@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.get("/download/")
 def download_table_file(
-    format: str = Query(..., regex="^(csv|xlsx|pdf|docx)$"),
+    format: str = Query(..., pattern="^(csv|xlsx|pdf|docx)$"),
     query_id: str = Query(...),
     db: Session = Depends(get_db)
 ):
