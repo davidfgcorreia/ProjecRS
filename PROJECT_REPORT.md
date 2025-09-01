@@ -123,12 +123,3 @@ Parallelism guidance
 
 5. Cost control
 - Add a cost-monitoring dashboard: track LLM spend, worker-hours, and storage usage. Add alerts on threshold.
-
----
-
-If you want, I can:
-- Generate a prioritized, timeboxed ticket list from this report.
-- Create a CI workflow for running the critical tests and building images.
-- Create a small diagnostics endpoint to return buffered debug logs for a `query_id` after processing completes.
-
-Tell me which follow-up you want and I'll implement it.
