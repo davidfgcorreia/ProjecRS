@@ -1,4 +1,4 @@
-# Full Project Documentation
+# ProjecRS — PDF Table Extraction and Review
 
 ## Overview
 
